@@ -1,0 +1,29 @@
+$TTL            86400
+@               IN      SOA      ns1 admin (
+                        1        ; Serial
+                        86400    ; Refresh
+                        7200     ; Retry
+                        2419200  ; Expire
+                        3600 )   ; Negative Cache TTL
+
+; Nameservers
+@               IN      NS       ns1
+@               IN      NS       ns2
+ns1             IN      A        $PUBLIC_IPV4
+                IN      AAAA     $NGINX_IPV6
+ns2             IN      A        $PUBLIC_IPV4
+                IN      AAAA     $NGINX_IPV6
+
+; Hostnames
+@               IN      A        $PUBLIC_IPV4
+                IN      AAAA     $NGINX_IPV6
+www             IN      A        $PUBLIC_IPV4
+                IN      AAAA     $NGINX_IPV6
+$XRAY_SNI.      IN      A        $PUBLIC_IPV4
+                IN      AAAA     $NGINX_IPV6
+$OCSERV_SNI.    IN      A        $PUBLIC_IPV4
+                IN      AAAA     $NGINX_IPV6
+
+; Certificate Authority
+@               IN      CAA      0 issue "letsencrypt.org"
+@               IN      CAA      0 issuewild ";"

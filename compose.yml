@@ -1,0 +1,221 @@
+x-logs: &logs
+    logging:
+        driver: json-file
+        options:
+            max-size: "1m"
+            max-file: "5"
+            compress: "false"
+
+x-ulimits: &ulimits
+    ulimits:
+        nofile:
+            soft: 2048
+            hard: 32000
+
+x-sysctls: &sysctls
+    # net.core.default_qdisc: fq
+    # net.core.rmem_max: 2097152
+    # net.core.wmem_max: 2097152
+    # net.core.netdev_max_backlog: 8192
+    net.core.somaxconn: 8192
+    net.ipv4.udp_rmem_min: 8192
+    net.ipv4.udp_wmem_min: 8192
+    net.ipv4.tcp_fastopen: 3
+    net.ipv4.tcp_keepalive_time: 3600
+    net.ipv4.tcp_slow_start_after_idle: 0
+    net.ipv4.tcp_congestion_control: bbr
+
+    # Enable IP spoof protection
+    net.ipv4.conf.all.rp_filter: 1
+
+    # Disable ICMP redirect messages
+    net.ipv4.conf.all.send_redirects: 0
+    net.ipv4.conf.all.accept_redirects: 0
+    net.ipv4.conf.all.secure_redirects: 0
+    net.ipv4.conf.all.accept_source_route: 0
+
+    # Disable IP source routing
+    net.ipv6.conf.all.accept_redirects: 0
+    net.ipv6.conf.all.accept_source_route: 0
+
+x-common: &common
+    restart: always
+    <<: *logs
+    <<: *ulimits
+    sysctls:
+        <<: *sysctls
+
+volumes:
+    temp:
+
+networks:
+    general:
+        driver: bridge
+        enable_ipv6: ${ENABLE_IPV6:-false}
+        ipam:
+            config:
+                - subnet: 192.168.100.0/29
+                - subnet: ${IPV6_SUBNET:-::/128}
+
+secrets:
+    xray:
+        file: ./xray/password
+    ocserv:
+        file: ./ocserv/password
+
+services:
+    nginx:
+        build: ./nginx
+        volumes:
+            - ./nginx/static:/etc/nginx/html:ro
+            - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+            - /etc/letsencrypt/live/$DOMAIN:/etc/letsencrypt/live/$DOMAIN:ro
+            - /etc/letsencrypt/archive/$DOMAIN:/etc/letsencrypt/archive/$DOMAIN:ro
+            - temp:/tmp
+        networks:
+            general:
+                ipv4_address: 192.168.100.2
+                ipv6_address: $NGINX_IPV6
+        cap_add:
+            - NET_ADMIN # for iptables
+        ports:
+            - ${TLS_PORT:?}:443/tcp
+        profiles:
+            - default
+        environment:
+            DOMAIN: ${DOMAIN:?}
+            XRAY_SNI: $XRAY_SNI
+            OCSERV_SNI: $OCSERV_SNI
+            OCSERV_DTLS_PORT: $OCSERV_DTLS_PORT
+            TLS_PORT: ${TLS_PORT:?}
+            DNS_IPV4: ${DNS_IPV4:?}
+            DNS_IPV6: $DNS_IPV6
+            ENABLE_IPV6: $ENABLE_IPV6
+            IPV6_SUBNET: $IPV6_SUBNET
+            COMPOSE_PROFILES: ${COMPOSE_PROFILES:?}
+        <<: *common
+
+    bind:
+        build: ./bind
+        volumes:
+            - ./bind/named.conf:/etc/bind/named.conf:ro
+            - ./bind/db.forward:/etc/bind/db.forward:ro
+            - temp:/tmp
+        networks:
+            general:
+                ipv4_address: 192.168.100.3
+                ipv6_address: $BIND_IPV6
+        cap_add:
+            - NET_ADMIN # for iptables
+        depends_on:
+            - nginx
+        profiles:
+            - default
+            - certbot
+        environment:
+            DOMAIN: ${DOMAIN:?}
+            XRAY_SNI: $XRAY_SNI
+            OCSERV_SNI: $OCSERV_SNI
+            ENABLE_DNSSEC: $ENABLE_DNSSEC
+            DNS_CACHE_SIZE: ${DNS_CACHE_SIZE:?}
+            DNS_IPV4: ${DNS_IPV4:?}
+            DNS_IPV6: $DNS_IPV6
+            ENABLE_IPV6: $ENABLE_IPV6
+            IPV6_SUBNET: $IPV6_SUBNET
+            PUBLIC_IPV4: $PUBLIC_IPV4
+            NGINX_IPV4: 192.168.100.2
+            NGINX_IPV6: $NGINX_IPV6
+            COMPOSE_PROFILES: ${COMPOSE_PROFILES:?}
+        <<: *common
+
+    certbot:
+        build: ./certbot
+        volumes:
+            - /etc/letsencrypt:/etc/letsencrypt
+            - /var/lib/letsencrypt:/var/lib/letsencrypt
+        networks:
+            general:
+                ipv4_address: 192.168.100.2
+                ipv6_address: $NGINX_IPV6
+        ports:
+            - 80:80
+            - 443:443
+        depends_on:
+            - bind
+        profiles:
+            - certbot
+            - certbot-standalone
+        environment:
+            DOMAIN: ${DOMAIN:?}
+            XRAY_SNI: $XRAY_SNI
+            OCSERV_SNI: $OCSERV_SNI
+            EMAIL: $EMAIL
+
+    xray:
+        build: ./xray
+        volumes:
+            - ./xray/xray.json:/usr/local/etc/xray/xray.json:ro
+            - /etc/letsencrypt/live/$DOMAIN:/etc/letsencrypt/live/$DOMAIN:ro
+            - /etc/letsencrypt/archive/$DOMAIN:/etc/letsencrypt/archive/$DOMAIN:ro
+            - temp:/tmp
+        networks:
+            - general
+        cap_add:
+            - NET_ADMIN # for iptables
+        depends_on:
+            - nginx
+            - bind
+        profiles:
+            - xray
+        secrets:
+            - source: xray
+              target: password
+              mode: 0440
+        environment:
+            DOMAIN: $DOMAIN
+            ENABLE_IPV6: $ENABLE_IPV6
+            IPV6_SUBNET: $IPV6_SUBNET
+            BIND_IPV4: 192.168.100.3
+            BIND_IPV6: $BIND_IPV6
+        <<: *common
+
+    ocserv:
+        build: ./ocserv
+        volumes:
+            - ./ocserv/configs:/etc/ocserv/configs:ro
+            - ./ocserv/ocserv.conf:/etc/ocserv/ocserv.conf:ro
+            - /etc/letsencrypt/live/$DOMAIN:/etc/letsencrypt/live/$DOMAIN:ro
+            - /etc/letsencrypt/archive/$DOMAIN:/etc/letsencrypt/archive/$DOMAIN:ro
+        networks:
+            - general
+        cap_add:
+            - NET_ADMIN
+            - CAP_MKNOD
+        depends_on:
+            - nginx
+            - bind
+        profiles:
+            - ocserv
+        secrets:
+            - source: ocserv
+              target: password
+              mode: 0400
+        sysctls:
+            <<: *sysctls
+            net.ipv4.ip_forward: 1
+            net.ipv6.conf.all.forwarding: 1
+            net.ipv6.conf.all.proxy_ndp: 1
+            net.ipv6.conf.all.disable_ipv6: 0
+        environment:
+            DOMAIN: $DOMAIN
+            OCSERV_DTLS_PORT: $OCSERV_DTLS_PORT
+            ENABLE_IPV6: $ENABLE_IPV6
+            IPV6_SUBNET: $IPV6_SUBNET
+            OCSERV_IPV4_SUBNET: $OCSERV_IPV4_SUBNET
+            OCSERV_IPV6_SUBNET: $OCSERV_IPV6_SUBNET
+            OCSERV_CLIENTS_IPV6_CIDR: $OCSERV_CLIENTS_IPV6_CIDR
+            BIND_IPV4: 192.168.100.3
+            BIND_IPV6: $BIND_IPV6
+        restart: always
+        <<: *logs
+        <<: *ulimits

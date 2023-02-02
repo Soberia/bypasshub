@@ -1,0 +1,15 @@
+services:
+    nginx:
+        ports:
+            # It's not possible to listen on all the available IPs due to
+            # interfering with `systemd-resolve` or other DNS resolvers
+            - ${PUBLIC_IPV4:?}:53:53/tcp
+            - "[::]:53:53/tcp"
+            - ${PUBLIC_IPV4:?}:53:53/udp
+            - "[::]:53:53/udp"
+        environment:
+            ENABLE_AUTHORITATIVE_ZONE: true
+
+    bind:
+        environment:
+            ENABLE_AUTHORITATIVE_ZONE: true

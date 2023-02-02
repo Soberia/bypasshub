@@ -1,0 +1,104 @@
+{
+  "log": {
+    "loglevel": "warning",
+    "access": "none"
+  },
+  "dns": {
+    "disableCache": true,
+    "servers": ["bind"]
+  },
+  "policy": {
+    "levels": {
+      "0": {
+        "connIdle": 3600,
+        "bufferSize": 512
+      }
+    }
+  },
+  "routing": {
+    "rules": [
+      {
+        "type": "field",
+        "port": 53,
+        "network": "tcp,udp",
+        "outboundTag": "bind"
+      }
+    ]
+  },
+  "inbounds": [
+    {
+      "protocol": "vless",
+      "listen": "/tmp/xray/xray.sock,766",
+      "settings": {
+        "decryption": "none",
+        "clients": [],
+        "fallbacks": [
+          {
+            "dest": "@trojan",
+            "path": "/trojan"
+          },
+          {
+            "dest": "/tmp/nginx/fallback-h1.sock",
+            "alpn": "http/1.1"
+          },
+          {
+            "dest": "/tmp/nginx/fallback-h2.sock",
+            "alpn": "h2"
+          }
+        ]
+      },
+      "streamSettings": {
+        "network": "tcp",
+        "security": "tls",
+        "tlsSettings": {
+          "rejectUnknownSni": false,
+          "alpn": ["http/1.1", "h2"],
+          "minVersion": "1.3",
+          "cipherSuites": "TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256",
+          "certificates": [
+            {
+              "ocspStapling": 3600,
+              "certificateFile": "/etc/letsencrypt/live/$DOMAIN/fullchain.pem",
+              "keyFile": "/etc/letsencrypt/live/$DOMAIN/privkey.pem"
+            }
+          ]
+        },
+        "sockopt": {
+          "tcpFastOpen": true
+        }
+      }
+    },
+    {
+      "protocol": "trojan",
+      "listen": "@trojan",
+      "settings": {
+        "clients": []
+      },
+      "streamSettings": {
+        "network": "tcp",
+        "security": "none",
+        "tcpSettings": {
+          "header": {
+            "type": "http",
+            "request": {
+              "path": ["/trojan"]
+            }
+          }
+        }
+      }
+    }
+  ],
+  "outbounds": [
+    {
+      "protocol": "freedom",
+      "domainStrategy": "UseIP"
+    },
+    {
+      "tag": "bind",
+      "protocol": "dns",
+      "settings": {
+        "address": "bind"
+      }
+    }
+  ]
+}

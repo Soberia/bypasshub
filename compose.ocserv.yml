@@ -1,0 +1,4 @@
+services:
+    nginx:
+        ports:
+            - ${OCSERV_DTLS_PORT:?}:$OCSERV_DTLS_PORT/udp

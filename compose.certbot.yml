@@ -1,0 +1,5 @@
+services:
+    bind:
+        extends:
+            file: compose.bind.yml
+            service: nginx
