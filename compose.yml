@@ -69,8 +69,8 @@ services:
         volumes:
             - ./nginx/static:/etc/nginx/html:ro
             - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-            - /etc/letsencrypt/live/$DOMAIN:/etc/letsencrypt/live/$DOMAIN:ro
-            - /etc/letsencrypt/archive/$DOMAIN:/etc/letsencrypt/archive/$DOMAIN:ro
+            - ./certbot/letsencrypt/live/$DOMAIN:/etc/letsencrypt/live/$DOMAIN:ro
+            - ./certbot/letsencrypt/archive/$DOMAIN:/etc/letsencrypt/archive/$DOMAIN:ro
             - temp:/tmp
         networks:
             general:
@@ -131,8 +131,7 @@ services:
     certbot:
         build: ./certbot
         volumes:
-            - /etc/letsencrypt:/etc/letsencrypt
-            - /var/lib/letsencrypt:/var/lib/letsencrypt
+            - ./certbot/letsencrypt:/etc/letsencrypt
         networks:
             general:
                 ipv4_address: 192.168.100.2
@@ -155,8 +154,8 @@ services:
         build: ./xray
         volumes:
             - ./xray/xray.json:/usr/local/etc/xray/xray.json:ro
-            - /etc/letsencrypt/live/$DOMAIN:/etc/letsencrypt/live/$DOMAIN:ro
-            - /etc/letsencrypt/archive/$DOMAIN:/etc/letsencrypt/archive/$DOMAIN:ro
+            - ./certbot/letsencrypt/live/$DOMAIN:/etc/letsencrypt/live/$DOMAIN:ro
+            - ./certbot/letsencrypt/archive/$DOMAIN:/etc/letsencrypt/archive/$DOMAIN:ro
             - temp:/tmp
         networks:
             - general
@@ -184,8 +183,8 @@ services:
         volumes:
             - ./ocserv/configs:/etc/ocserv/configs:ro
             - ./ocserv/ocserv.conf:/etc/ocserv/ocserv.conf:ro
-            - /etc/letsencrypt/live/$DOMAIN:/etc/letsencrypt/live/$DOMAIN:ro
-            - /etc/letsencrypt/archive/$DOMAIN:/etc/letsencrypt/archive/$DOMAIN:ro
+            - ./certbot/letsencrypt/live/$DOMAIN:/etc/letsencrypt/live/$DOMAIN:ro
+            - ./certbot/letsencrypt/archive/$DOMAIN:/etc/letsencrypt/archive/$DOMAIN:ro
         networks:
             - general
         cap_add:

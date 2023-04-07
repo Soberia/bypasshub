@@ -49,11 +49,11 @@ cd bypasshub
 
 ## Generating TLS Certificate
 
-If you already have a wildcard certificate covering `$DOMAIN` and `*.$DOMAIN`, you can skip this section entirely and just create a symlink to your certificates directory if not already have it there: (this directory is expected to contain `fullchain.pem`, `chain.pem` and `privkey.pem`)
+If you already have a wildcard certificate covering `$DOMAIN` and `*.$DOMAIN`, you can skip this section entirely and just copy your certificates directory: (this directory is expected to contain `fullchain.pem`, `chain.pem` and `privkey.pem`)
 
 ```bash
-mkdir -p /etc/letsencrypt/live
-ln -s /path/to/your/certificates /etc/letsencrypt/live/$DOMAIN
+mkdir -p ./certbot/letsencrypt/live
+cp -Lr /path/to/your/certificates ./certbot/letsencrypt/live/$DOMAIN
 ```
 
 Otherwise, follow the rest to generate one.  
@@ -112,7 +112,7 @@ All you have to do for regenerating the certificate is to temporarily stop the c
 You can check the expiration date of your certificate with this command:
 
 ```bash
-openssl x509 -dates -noout < /etc/letsencrypt/live/$DOMAIN/fullchain.pem
+openssl x509 -dates -noout < ./certbot/letsencrypt/live/$DOMAIN/fullchain.pem
 ```
 
 > **Note**  
@@ -288,8 +288,7 @@ You can revoke the generated certificates if you don't need them anymore: (repla
 
 ```bash
 docker run --rm -it \
-    -v /etc/letsencrypt:/etc/letsencrypt \
-    -v /var/lib/letsencrypt:/var/lib/letsencrypt \
+    -v ./certbot/letsencrypt:/etc/letsencrypt \
     certbot/certbot certbot revoke --cert-name $DOMAIN
 ```
 

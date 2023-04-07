@@ -22,3 +22,5 @@ CMD \
     then \
         chmod -R u+rwX,go+rX,go-w /etc/letsencrypt/{live,archive}/$DOMAIN; \
     fi; \
+
+    find /etc/letsencrypt -type d -empty -delete
