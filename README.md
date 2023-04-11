@@ -126,7 +126,7 @@ openssl x509 -dates -noout < ./certbot/letsencrypt/live/$DOMAIN/fullchain.pem
 For `Xray-core`:
 
 ```bash
-uuidgen | tee xray/password # Add (generates a random password, keep it)
+cat /proc/sys/kernel/random/uuid | tee -a xray/password # Add (generates a random password, keep it)
 sed -i '/PASSWORD/d' xray/password # Delete (replace the `PASSWORD` with the one you want to remove)
 ```
 
