@@ -153,6 +153,7 @@ services:
     xray:
         build: ./xray
         volumes:
+            - ./xray/configs:/usr/local/etc/xray/confs:ro
             - ./xray/xray.json:/usr/local/etc/xray/xray.json:ro
             - ./certbot/letsencrypt/live/$DOMAIN:/etc/letsencrypt/live/$DOMAIN:ro
             - ./certbot/letsencrypt/archive/$DOMAIN:/etc/letsencrypt/archive/$DOMAIN:ro

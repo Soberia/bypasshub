@@ -137,8 +137,6 @@ docker run --rm -it -v $PWD/ocserv:/ocserv bypasshub-ocserv ocpasswd -c /ocserv/
 docker run --rm -it -v $PWD/ocserv:/ocserv bypasshub-ocserv ocpasswd -c /ocserv/password -d USERNAME # Delete
 ```
 
-You can also place [user-based configurations](http://ocserv.gitlab.io/www/manual.html) files in the `ocserv/configs` directory (e.g. to give a user a static IP address). The name of the config file should correspond to the defined username. 
-
 After modifications, you must restart the related container for changes to take effect:
 
 ```bash
@@ -232,6 +230,12 @@ By default, for invalid requests (or authentication failures in the case of `Xra
 
 > **Warning**  
 > `OpenConnect` VPN server [can be detected through the exposed SNI](https://gitlab.com/openconnect/ocserv/-/issues/393). You may consider to disable it via [`ENABLE_OCSERV`](#ENABLE_OCSERV) parameter if Layer 3 protocols usability is not your concern, UDP ports are blocked or restricted in your region or [DPI](https://en.wikipedia.org/wiki/Deep_packet_inspection) won't let you establish a DTLS connection. It may be better to use `Xray-core` instead, it performs better on TCP.
+
+## Additional Configurations
+
+For `Xray-core` you can place [additional configurations](https://xtls.github.io/Xray-docs-next/config/features/multiple.html) files in the `xray/configs` directory (e.g. to block BitTorrent traffic).
+
+For `OpenConnect`, you can place [user-based configurations](http://ocserv.gitlab.io/www/manual.html) files in the `ocserv/configs` directory (e.g. to give user a static IP address). The name of the config file should correspond to the defined username.
 
 ## DNSSEC
 

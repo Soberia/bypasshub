@@ -27,6 +27,7 @@
   },
   "inbounds": [
     {
+      "tag": "vless-tcp",
       "protocol": "vless",
       "listen": "/tmp/xray/xray.sock,766",
       "settings": {
@@ -69,6 +70,7 @@
       }
     },
     {
+      "tag": "trojan-tcp",
       "protocol": "trojan",
       "listen": "@trojan",
       "settings": {
@@ -90,8 +92,13 @@
   ],
   "outbounds": [
     {
+      "tag": "freedom",
       "protocol": "freedom",
       "domainStrategy": "UseIP"
+    },
+    {
+      "tag": "blackhole",
+      "protocol": "blackhole"
     },
     {
       "tag": "bind",

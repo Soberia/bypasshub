@@ -79,4 +79,6 @@ CMD \
     # Injecting the environment variables
     sed -i "s|\$DOMAIN|$DOMAIN|g" /tmp/xray/xray.json; \
 
-    /usr/local/bin/xray run -config /tmp/xray/xray.json;
+    /usr/local/bin/xray run \
+        -config /tmp/xray/xray.json \
+        -confdir /usr/local/etc/xray/confs
