@@ -254,7 +254,7 @@ docker exec bypasshub-bind-1 \
 
 ## IPv6
 
-Enable the [`IPV6_SUBNET`](#IPV6_SUBNET) parameter and you can either specify your server's Global Unicast IPv6 address prefix with [`IPV6_PREFIX`](#IPV6_PREFIX) parameter or fill the rest of IPv6 parameters manually.
+Enable the [`ENABLE_IPV6`](#ENABLE_IPV6) parameter and you can either specify your server's Global Unicast IPv6 address prefix with [`IPV6_PREFIX`](#IPV6_PREFIX) parameter or fill the rest of IPv6 parameters manually.
 
 You may also need the following firewall rules in the `FORWARD` chain: (they won't be permanent)
 
