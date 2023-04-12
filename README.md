@@ -288,8 +288,8 @@ You can revoke the generated certificates if you don't need them anymore: (repla
 
 ```bash
 docker run --rm -it \
-    -v ./certbot/letsencrypt:/etc/letsencrypt \
-    certbot/certbot certbot revoke --cert-name $DOMAIN
+    -v $PWD/certbot/letsencrypt:/etc/letsencrypt \
+    certbot/certbot revoke --cert-name $DOMAIN
 ```
 
 And to remove everything:
