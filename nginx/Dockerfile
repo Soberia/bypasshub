@@ -49,6 +49,7 @@ CMD \
     declare -a envs=( \
         'DOMAIN' \
         'XRAY_SNI' \
+        'XRAY_CDN_SNI' \
         'OCSERV_SNI' \
         'OCSERV_DTLS_PORT' \
         'TLS_PORT' \

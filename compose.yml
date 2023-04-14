@@ -85,6 +85,7 @@ services:
         environment:
             DOMAIN: ${DOMAIN:?}
             XRAY_SNI: $XRAY_SNI
+            XRAY_CDN_SNI: $XRAY_CDN_SNI
             OCSERV_SNI: $OCSERV_SNI
             OCSERV_DTLS_PORT: $OCSERV_DTLS_PORT
             TLS_PORT: ${TLS_PORT:?}
@@ -147,6 +148,7 @@ services:
         environment:
             DOMAIN: ${DOMAIN:?}
             XRAY_SNI: $XRAY_SNI
+            XRAY_CDN_SNI: $XRAY_CDN_SNI
             OCSERV_SNI: $OCSERV_SNI
             EMAIL: $EMAIL
 
@@ -173,6 +175,7 @@ services:
               mode: 0440
         environment:
             DOMAIN: $DOMAIN
+            ENABLE_XRAY_CDN: $ENABLE_XRAY_CDN
             ENABLE_IPV6: $ENABLE_IPV6
             IPV6_SUBNET: $IPV6_SUBNET
             BIND_IPV4: 192.168.100.3

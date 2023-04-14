@@ -60,18 +60,21 @@ CMD \
     install -d -m 0755 /tmp/xray; \
 
     # Injecting the passwords
-    vless_clients=""; \
-    trojan_clients=""; \
+    clients_tcp=""; \
+    clients_ws=""; \
     readarray -t passwords < /var/run/secrets/password; \
     if [ ! -z "${passwords}" ]; then \
         for password in "${passwords[@]}"; do \
-            vless_clients+="{\"flow\": \"xtls-rprx-vision\",\"id\": \"$password\"},"; \
-            trojan_clients+="{\"flow\": \"xtls-rprx-direct\",\"password\": \"$password\"},"; \
+            clients_tcp+="{\"flow\": \"xtls-rprx-vision\",\"id\": \"$password\"},"; \
+            if [[ $ENABLE_XRAY_CDN == 'true' ]]; then \
+                clients_ws+="{\"flow\": null,\"id\": \"$password\"},"; \
+            fi; \
         done; \
-        jq ".inbounds[0].settings.clients += [${vless_clients::-1}] | \
-            .inbounds[1].settings.clients += [${trojan_clients::-1}]" \
+        [[ $ENABLE_XRAY_CDN != 'true' ]] && clients_ws=','; \
+        jq ".inbounds[0].settings.clients += [${clients_tcp::-1}] | \
+            .inbounds[1].settings.clients += [${clients_ws::-1}]" \
             /usr/local/etc/xray/xray.json > /tmp/xray/xray.json; \
-        unset passwords clients; \
+        unset passwords clients_tcp clients_ws; \
     else \
         cp -f /usr/local/etc/xray/xray.json /tmp/xray/xray.json; \
     fi; \

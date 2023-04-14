@@ -49,23 +49,26 @@ cd bypasshub
 
 ## Generating TLS Certificate
 
-If you already have a wildcard certificate covering `$DOMAIN` and `*.$DOMAIN`, you can skip this section entirely and just copy your certificates directory: (this directory is expected to contain `fullchain.pem`, `chain.pem` and `privkey.pem`)
+> **Note**  
+> If you already have a wildcard certificate covering `$DOMAIN` and `*.$DOMAIN`, you can skip this section entirely and just copy your certificates directory: (this directory is expected to contain `fullchain.pem`, `chain.pem` and `privkey.pem`)
+> 
+> ```bash
+> mkdir -p ./certbot/letsencrypt/live
+> cp -Lr /path/to/your/certificates ./certbot/letsencrypt/live/$DOMAIN
+> ```
+> 
+> Otherwise, follow the rest to generate one. 
 
-```bash
-mkdir -p ./certbot/letsencrypt/live
-cp -Lr /path/to/your/certificates ./certbot/letsencrypt/live/$DOMAIN
-```
-
-Otherwise, follow the rest to generate one.  
 Fill the following parameters in the [config file](#-configuration) with your information:
 
 - [`DOMAIN`](#DOMAIN)
 - [`EMAIL`](#EMAIL)
 - [`PUBLIC_IPV4`](#PUBLIC_IPV4)
 
-It's also recommended to change [`XRAY_SNI`](#XRAY_SNI) and [`OCSERV_SNI`](#OCSERV_SNI) subdomain part to something else. For example default [`XRAY_SNI`](#XRAY_SNI) value is `xr.$DOMAIN`, you can change it to `hotdog.$DOMAIN` or any other random value instead. You'll use these values when connecting from the client side.
+It's also recommended to change [`XRAY_SNI`](#XRAY_SNI), [`XRAY_CDN_SNI`](#XRAY_CDN_SNI) and [`OCSERV_SNI`](#OCSERV_SNI) subdomain part to something else. For example, default [`XRAY_SNI`](#XRAY_SNI) value is `xr.$DOMAIN`, you can change it to `hotdog.$DOMAIN` or any other random value instead. You'll use these values when connecting from the client side.
 
-If you already have a DNS server on your machine or you use your DNS registrar's, create an `A` (and/or `AAAA`) record for values of [`DOMAIN`](#DOMAIN), [`XRAY_SNI`](#XRAY_SNI) and [`OCSERV_SNI`](#OCSERV_SNI) and disable the [`ENABLE_AUTHORITATIVE_ZONE`](#ENABLE_AUTHORITATIVE_ZONE) parameter because you can't use two DNS servers at the same time on the same port.  
+If you already have a DNS server on your machine or you use your DNS registrar's, create an `A` (and/or `AAAA`) record for [`DOMAIN`](#DOMAIN), [`XRAY_SNI`](#XRAY_SNI), [`XRAY_CDN_SNI`](#XRAY_CDN_SNI), [`OCSERV_SNI`](#OCSERV_SNI) and `www.$DOMAIN` and point them to the [`PUBLIC_IPV4`](#PUBLIC_IPV4) (or [`NGINX_IPV6`](#NGINX_IPV6)) and disable the [`ENABLE_AUTHORITATIVE_ZONE`](#ENABLE_AUTHORITATIVE_ZONE) parameter because you can't use two DNS servers at the same time on the same port.
+
 Otherwise, you need to go to your domain registrar and set the nameservers to the `ns1.$DOMAIN` and `ns2.$DOMAIN` (replace `$DOMAIN` with your actual domain, e.g. `ns1.domain.com`). You also need to create glue records for these nameservers you just defined. The glue records for your nameservers should point to your server's public IP address. Set these glue records in your domain registrar: (replace `$DOMAIN` and `$PUBLIC_IPV4` with your actual domain and public IP address)
 
 ```
@@ -109,16 +112,18 @@ bypasshub-certbot-1  | - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The certificate is valid for 90 days. You have to reissue it before the expiration date.  
 All you have to do for regenerating the certificate is to temporarily stop the containers (`docker compose stop`) and rerun the last command again and restart the containers after that. (`docker compose restart`)
 
-You can check the expiration date of your certificate with this command:
-
-```bash
-openssl x509 -dates -noout < ./certbot/letsencrypt/live/$DOMAIN/fullchain.pem
-```
-
 > **Note**  
+> You can check the expiration date of your certificate with this command:
+> 
+> ```bash
+> openssl x509 -dates -noout < ./certbot/letsencrypt/live/$DOMAIN/fullchain.pem
+> ```
+
+> **Warning**  
 > You must regenerate the certificate whenever you need to change any of these parameters:
 > - [`DOMAIN`](#DOMAIN)
 > - [`XRAY_SNI`](#XRAY_SNI)
+> - [`XRAY_CDN_SNI`](#XRAY_CDN_SNI)
 > - [`OCSERV_SNI`](#OCSERV_SNI)
 
 ## Managing Users
@@ -137,12 +142,13 @@ docker run --rm -it -v $PWD/ocserv:/ocserv bypasshub-ocserv ocpasswd -c /ocserv/
 docker run --rm -it -v $PWD/ocserv:/ocserv bypasshub-ocserv ocpasswd -c /ocserv/password -d USERNAME # Delete
 ```
 
-After modifications, you must restart the related container for changes to take effect:
-
-```bash
-docker restart bypasshub-xray-1
-docker restart bypasshub-ocserv-1
-```
+> **Note**  
+> After modifications, you must restart the related container if it's running for changes to take effect:
+> 
+> ```bash
+> docker restart bypasshub-xray-1
+> docker restart bypasshub-ocserv-1
+> ```
 
 ## Connecting from Client
 
@@ -159,23 +165,25 @@ Get the [`Xray-core`](https://github.com/XTLS/Xray-core) and [`OpenConnect`](htt
     ```
     Protocol: VLESS
     Address: $XRAY_SNI
+    Port: $TLS_PORT
     UUID: PASSWORD
     Flow: xtls-rprx-vision
     Transport Protocol: TCP
-    TLS Type: TLS
+    Security: TLS
     ```
 
-    or
+    or if you [want to connect via the CDN](#using-a-cdn):
 
     ```
-    Protocol: Trojan
-    Address: $XRAY_SNI
-    Password: PASSWORD
-    Flow: xtls-rprx-direct
-    Transport Protocol: TCP
-    Camouflage Type: http
-    Camouflage Path: /trojan
-    TLS Type: TLS
+    Protocol: VLESS
+    Address: $XRAY_CDN_SNI (or IP addresses of your CDN provider)
+    Port: $CDN_TLS_PORT
+    UUID: PASSWORD
+    Transport Protocol: WS
+    Transport Host: $XRAY_CDN_SNI
+    Transport Path: /ws?ed=2048
+    Security: TLS
+    SNI: $XRAY_CDN_SNI
     ```
 
     <details>
@@ -222,6 +230,19 @@ Get the [`Xray-core`](https://github.com/XTLS/Xray-core) and [`OpenConnect`](htt
     ```
     </details>
 
+## Using a CDN
+
+If your server's IP address (or certain ports) is blocked or traffic to your server gets throttled by the national firewall, you might be able to access your server again or improve the connection speed by placing your server behind a CDN. However, only `Xray-core` can benefit from this due to the fact that usually the CDN providers don't offer tunnel at the TCP/UDP level on their free plans. The `Xray-core` is able to work on a `WebSocket` or `gPRC` connection and a CDN provider like Cloudflare supports both of these protocols for free.
+
+The following will demonstrate to place your server behind a Cloudflare CDN, but the instruction should be the same for other providers:
+- Login to your [dashboard](https://dash.cloudflare.com).
+- Add your website and if your current DNS records couldn't be detected correctly, from the "DNS" panel, create an `A` (and/or `AAAA`) record for [`DOMAIN`](#DOMAIN), [`XRAY_SNI`](#XRAY_SNI), [`XRAY_CDN_SNI`](#XRAY_CDN_SNI), [`OCSERV_SNI`](#OCSERV_SNI) and `www.$DOMAIN` and point them to the [`PUBLIC_IPV4`](#PUBLIC_IPV4) (or [`NGINX_IPV6`](#NGINX_IPV6)). The "Proxy status" should be enabled for all except for the [`XRAY_SNI`](#XRAY_SNI) and [`OCSERV_SNI`](#OCSERV_SNI). You'll need to swap your nameservers to the Cloudflare's in your domain registrar and also remove the glue records.
+- From the "SSL/TLS" panel, change the encryption mode to "Full" or "Full (strict)". In the "Edge Certificates" section, enable the "TLS 1.3" option and set the "Minimum TLS Version" option to the "TLS 1.3".
+- In the "Network" panel, make sure the "WebSockets" is enabled.
+- The [`ENABLE_AUTHORITATIVE_ZONE`](#ENABLE_AUTHORITATIVE_ZONE) and [`ENABLE_XRAY_CDN`](#ENABLE_XRAY_CDN) parameters should be disabled and enabled respectively. Restart the containers after the modification.
+- [Update](#connecting-from-client) your `Xray-core` client configurations to reflect the changes. If you can't make a successful connection, try with an [IP scanner](https://cloudflare-v2ray.vercel.app) to find healthy IP addresses.
+- (Optional) Now, you're able to connect to the server either with the CDN or directly. But if you only need to connect via the CDN, you might want to remove the DNS records for the [`XRAY_SNI`](#XRAY_SNI) and [`OCSERV_SNI`](#OCSERV_SNI) to hide your server's IP address from the national firewall.
+
 ## Dummy Website
 
 The TLS-based services like `Xray-core` and `OpenConnect` are camouflaged behind a web server which decides the destination of incoming traffic based on the passed SNI value.
@@ -233,9 +254,9 @@ By default, for invalid requests (or authentication failures in the case of `Xra
 
 ## Additional Configurations
 
-For `Xray-core` you can place [additional configurations](https://xtls.github.io/Xray-docs-next/config/features/multiple.html) files in the `xray/configs` directory (e.g. to block BitTorrent traffic).
+For `Xray-core` you can place [additional configuration](https://xtls.github.io/Xray-docs-next/config/features/multiple.html) files in the `xray/configs` directory (e.g. to block BitTorrent traffic).
 
-For `OpenConnect`, you can place [user-based configurations](http://ocserv.gitlab.io/www/manual.html) files in the `ocserv/configs` directory (e.g. to give user a static IP address). The name of the config file should correspond to the defined username.
+For `OpenConnect`, you can place [user-based configuration](http://ocserv.gitlab.io/www/manual.html) files in the `ocserv/configs` directory (e.g. to give user a static IP address). The name of the config file should correspond to the defined username.
 
 ## DNSSEC
 
@@ -245,7 +266,7 @@ For [securing the exchanged data](https://en.wikipedia.org/wiki/Domain_Name_Syst
 docker restart bypasshub-bind-1
 ```
 
-and get the keys by running the following command and set them on your parent domain through your domain registrar:
+and get the keys by running the following command and setting them on your parent domain through your domain registrar:
 
 ```bash
 docker exec bypasshub-bind-1 \
@@ -307,21 +328,26 @@ docker compose down --volumes --rmi all
 All the configurations take place in the `.env` file.
 It's also possible to provide these parameters as environment variable which in this case they override the values in the config file.
 
-All the parameters that start with `ENABLE_`, are switches. Their value evaluates to `true` if set to anything (including the empty value) or to `false` if the variable is commented out or removed entirely.
+> **Note**  
+> All the parameters that start with `ENABLE_`, are switches. Their value evaluates to `true` if set to anything (including the empty value) or to `false` if the variable is commented out or removed entirely.
 
-All the parameters that include `IPV6` in their name, will be ignored whenever [`ENABLE_IPV6`](#ENABLE_IPV6) is not enabled.
+> **Note**  
+> All the parameters that include `IPV6` in their name, will be ignored whenever [`ENABLE_IPV6`](#ENABLE_IPV6) is not enabled.
 
 Variable                                                              | Type   | Description
 --------------------------------------------------------------------- | :----: | -----------
 <span id="ENABLE_CERTBOT">ENABLE_CERTBOT</span>                       | switch | Enables the `certbot` and `BIND` DNS server for generating the TLS certificate.
 <span id="ENABLE_CERTBOT_STANDALONE">ENABLE_CERTBOT_STANDALONE</span> | switch | Enables the `certbot` for generating the TLS certificate.
 <span id="ENABLE_XRAY">ENABLE_XRAY</span>                             | switch | Enables the `Xray-core` proxy server.
+<span id="ENABLE_XRAY_CDN">ENABLE_XRAY_CDN</span>                     | switch | Enables the `Xray-core` proxy server to work behind the CDN.
 <span id="ENABLE_OCSERV">ENABLE_OCSERV</span>                         | switch | Enables the `OpenConnect` VPN server.
 <span id="DOMAIN">DOMAIN</span>                                       | string | The domain to use for the web server and other TLS-based services.
 <span id="XRAY_SNI">XRAY_SNI</span>                                   | string | The SNI value for routing traffic to the `Xray-core` proxy server.
+<span id="XRAY_CDN_SNI">XRAY_CDN_SNI</span>                           | string | The SNI value for routing traffic to the `Xray-core` proxy server originated from the CDN.
 <span id="OCSERV_SNI">OCSERV_SNI</span>                               | string | The SNI value for routing traffic to the `OpenConnect` VPN server.
 <span id="EMAIL">EMAIL</span>                                         | string | The email address for registering the [Let's Encrypt](https://letsencrypt.org) TLS certificate. Certificate expiration reminders will be sent to this email address.
 <span id="TLS_PORT">TLS_PORT</span>                                   | number | The TCP port for the web server and other TLS-based services.
+<span id="CDN_TLS_PORT">CDN_TLS_PORT</span>                           | number | The TCP port for the TLS-based connections to the CDN. This value should only be changed when remapping the [`TLS_PORT`](#TLS_PORT) port on the CDN. (e.g. The connections on the CDN's port 443 would be forwarded to the server's port 8433)
 <span id="OCSERV_DTLS_PORT">OCSERV_DTLS_PORT</span>                   | number | The UDP port for the `OpenConnect` VPN server's DTLS protocol.
 <span id="ENABLE_AUTHORITATIVE_ZONE">ENABLE_AUTHORITATIVE_ZONE</span> | switch | Enables the authoritative DNS zone for provided [`DOMAIN`](#DOMAIN).
 <span id="ENABLE_DNSSEC">ENABLE_DNSSEC</span>                         | switch | Enables the DNSSEC for the authoritative DNS zone.

@@ -6,7 +6,7 @@ SHELL ["bash", "-c"]
 CMD \
     # Ignoring invalid SNIs which is not part of the parent domain
     domains="$DOMAIN,www.$DOMAIN"; \
-    for sni in 'XRAY_SNI' 'OCSERV_SNI'; do \
+    for sni in 'XRAY_SNI' 'XRAY_CDN_SNI' 'OCSERV_SNI'; do \
         if [[ ${!sni} =~ "$DOMAIN"$ ]]; then \
             domains+=",${!sni}"; \
         fi; \

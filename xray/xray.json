@@ -35,8 +35,8 @@
         "clients": [],
         "fallbacks": [
           {
-            "dest": "@trojan",
-            "path": "/trojan"
+            "dest": "@ws",
+            "path": "/ws"
           },
           {
             "dest": "/tmp/nginx/fallback-h1.sock",
@@ -70,22 +70,18 @@
       }
     },
     {
-      "tag": "trojan-tcp",
-      "protocol": "trojan",
-      "listen": "@trojan",
+      "tag": "vless-ws",
+      "protocol": "vless",
+      "listen": "@ws",
       "settings": {
+        "decryption": "none",
         "clients": []
       },
       "streamSettings": {
-        "network": "tcp",
+        "network": "ws",
         "security": "none",
-        "tcpSettings": {
-          "header": {
-            "type": "http",
-            "request": {
-              "path": ["/trojan"]
-            }
-          }
+        "wsSettings": {
+          "path": "/ws"
         }
       }
     }
