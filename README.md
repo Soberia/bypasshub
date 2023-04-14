@@ -160,7 +160,16 @@ docker compose up -d
 
 Get the [`Xray-core`](https://github.com/XTLS/Xray-core) and [`OpenConnect`](https://gitlab.com/openconnect/openconnect) clients for your devices.
 
-- For `Xray-core`, use these values when adding a new server in your client:
+- For `Xray-core`, in your client, add a subscription with the following URL:
+
+    ```
+    https://$DOMAIN/subscription?uuid=PASSWORD
+    ```
+
+    <details>
+    <summary style="color: cyan">Adding the Server Manually</summary>
+
+    Use these values when adding a new server in your client:
 
     ```
     Protocol: VLESS
@@ -197,6 +206,7 @@ Get the [`Xray-core`](https://github.com/XTLS/Xray-core) and [`OpenConnect`](htt
     ```
 
     You may also need to tell your client to allow insecure connections.
+    </details>
     </details>
 
 
@@ -239,8 +249,13 @@ The following will demonstrate to place your server behind a Cloudflare CDN, but
 - Add your website and if your current DNS records couldn't be detected correctly, from the "DNS" panel, create an `A` (and/or `AAAA`) record for [`DOMAIN`](#DOMAIN), [`XRAY_SNI`](#XRAY_SNI), [`XRAY_CDN_SNI`](#XRAY_CDN_SNI), [`OCSERV_SNI`](#OCSERV_SNI) and `www.$DOMAIN` and point them to the [`PUBLIC_IPV4`](#PUBLIC_IPV4) (or [`NGINX_IPV6`](#NGINX_IPV6)). The "Proxy status" should be enabled for all except for the [`XRAY_SNI`](#XRAY_SNI) and [`OCSERV_SNI`](#OCSERV_SNI). You'll need to swap your nameservers to the Cloudflare's in your domain registrar and also remove the glue records.
 - From the "SSL/TLS" panel, change the encryption mode to "Full" or "Full (strict)". In the "Edge Certificates" section, enable the "TLS 1.3" option and set the "Minimum TLS Version" option to the "TLS 1.3".
 - In the "Network" panel, make sure the "WebSockets" is enabled.
+- If the [`ENABLE_XRAY_SUBSCRIPTION`](#ENABLE_XRAY_SUBSCRIPTION) parameter is enabled, you should set the "Caching Level" option to the "No query string" in the "Configuration" section of "Caching" panel.
 - The [`ENABLE_AUTHORITATIVE_ZONE`](#ENABLE_AUTHORITATIVE_ZONE) and [`ENABLE_XRAY_CDN`](#ENABLE_XRAY_CDN) parameters should be disabled and enabled respectively. Restart the containers after the modification.
-- [Update](#connecting-from-client) your `Xray-core` client configurations to reflect the changes. If you can't make a successful connection, try with an [IP scanner](https://cloudflare-v2ray.vercel.app) to find healthy IP addresses.
+- [Update](#connecting-from-client) your `Xray-core` client configurations to reflect the changes. If you can't make a successful connection, try with an [IP scanner](https://cloudflare-v2ray.vercel.app) to find healthy IP addresses. You can also put these IP addresses that work on different ISPs to the `xray/configs/cdn-ips` to publish them on the subscription:
+    ```
+    1.1.1.1 ISP#1
+    1.1.1.2 ISP#2
+    ```
 - (Optional) Now, you're able to connect to the server either with the CDN or directly. But if you only need to connect via the CDN, you might want to remove the DNS records for the [`XRAY_SNI`](#XRAY_SNI) and [`OCSERV_SNI`](#OCSERV_SNI) to hide your server's IP address from the national firewall.
 
 ## Dummy Website
@@ -340,6 +355,7 @@ Variable                                                              | Type   |
 <span id="ENABLE_CERTBOT_STANDALONE">ENABLE_CERTBOT_STANDALONE</span> | switch | Enables the `certbot` for generating the TLS certificate.
 <span id="ENABLE_XRAY">ENABLE_XRAY</span>                             | switch | Enables the `Xray-core` proxy server.
 <span id="ENABLE_XRAY_CDN">ENABLE_XRAY_CDN</span>                     | switch | Enables the `Xray-core` proxy server to work behind the CDN.
+<span id="ENABLE_XRAY_SUBSCRIPTION">ENABLE_XRAY_SUBSCRIPTION</span>   | switch | Enables the `Xray-core` clients to access the configs by a subscription URL. Only authorized users have access to the subscription by providing their credentials.
 <span id="ENABLE_OCSERV">ENABLE_OCSERV</span>                         | switch | Enables the `OpenConnect` VPN server.
 <span id="DOMAIN">DOMAIN</span>                                       | string | The domain to use for the web server and other TLS-based services.
 <span id="XRAY_SNI">XRAY_SNI</span>                                   | string | The SNI value for routing traffic to the `Xray-core` proxy server.

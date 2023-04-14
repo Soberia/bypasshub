@@ -56,8 +56,35 @@ CMD \
         sudo ip6tables -A OUTPUT -d $IPV6_SUBNET,fd00::/8 -j DROP; \
     fi; \
 
+    > /tmp/xray/uuids; \
+    > /tmp/xray/urls.txt; \
     rm -f /tmp/xray/*.sock >/dev/null 2>&1; \
     install -d -m 0755 /tmp/xray; \
+
+    # Generateing subscription share URLs
+    if [[ $ENABLE_XRAY_SUBSCRIPTION == 'true' ]]; then \
+        shared="?security=tls&fp=randomized"; \
+		url_tcp="@${XRAY_SNI}:${TLS_PORT}${shared}&type=tcp&flow=xtls-rprx-vision#${DOMAIN}"; \
+        echo "vless://{uuid}${url_tcp}" >> /tmp/xray/urls.txt; \
+        if [[ $ENABLE_XRAY_CDN == 'true' ]]; then \
+            cdn_port=$([ ! -z "${CDN_TLS_PORT}" ] && echo $CDN_TLS_PORT || echo $TLS_PORT); \
+            url_ws=":${cdn_port}${shared}&type=ws&sni=${XRAY_CDN_SNI}"; \
+		    url_ws="${url_ws}&host=${XRAY_CDN_SNI}&path=/ws?ed=2048#${DOMAIN}-CDN"; \
+            echo "vless://{uuid}@${XRAY_CDN_SNI}${url_ws}" >> /tmp/xray/urls.txt; \
+            if [ -f /usr/local/etc/xray/confs/cdn-ips ]; then \
+                readarray -t ips < /usr/local/etc/xray/confs/cdn-ips; \
+                if [ ! -z "${ips}" ]; then \
+                    for ip in "${ips[@]}"; do \
+                        if [ ! -z "${ip// }" ]; then \
+                            ip=($ip); \
+                            echo "vless://{uuid}@${ip[0]}${url_ws}-${ip[1]}" \
+                                >> /tmp/xray/urls.txt; \
+                        fi; \
+                    done; \
+                fi; \
+            fi; \
+        fi; \
+    fi; \
 
     # Injecting the passwords
     clients_tcp=""; \
@@ -68,6 +95,9 @@ CMD \
             clients_tcp+="{\"flow\": \"xtls-rprx-vision\",\"id\": \"$password\"},"; \
             if [[ $ENABLE_XRAY_CDN == 'true' ]]; then \
                 clients_ws+="{\"flow\": null,\"id\": \"$password\"},"; \
+            fi; \
+            if [[ $ENABLE_XRAY_SUBSCRIPTION == 'true' ]]; then \
+                echo "$password $password;" >> /tmp/xray/uuids; \
             fi; \
         done; \
         [[ $ENABLE_XRAY_CDN != 'true' ]] && clients_ws=','; \
