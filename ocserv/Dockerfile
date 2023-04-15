@@ -8,7 +8,7 @@ RUN apt-get update && \
     echo '[[ $ENABLE_IPV6 != "true" ]] && exit 0' >> $script; \
     echo 'ip -6 neighbour $([[ $REASON == "connect" ]] && echo add || echo del) proxy $IPV6_REMOTE dev eth0' >> $script; \
     echo 'exit 0' >> $script; \
-    chmod 550 /var/run/proxy-ndp.sh;
+    chmod 550 $script;
 
 SHELL ["bash", "-c"]
 CMD \
