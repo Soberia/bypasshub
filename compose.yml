@@ -40,8 +40,7 @@ x-sysctls: &sysctls
 
 x-common: &common
     restart: always
-    <<: *logs
-    <<: *ulimits
+    <<: [*logs, *ulimits]
     sysctls:
         <<: *sysctls
 
@@ -225,5 +224,4 @@ services:
             BIND_IPV4: 192.168.100.3
             BIND_IPV6: $BIND_IPV6
         restart: always
-        <<: *logs
-        <<: *ulimits
+        <<: [*logs, *ulimits]
