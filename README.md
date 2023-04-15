@@ -128,11 +128,11 @@ All you have to do for regenerating the certificate is to temporarily stop the c
 
 ## Managing Users
 
-For `Xray-core`:
+For `Xray-core`: (replace `USERNAME` with yours)
 
 ```bash
-cat /proc/sys/kernel/random/uuid | tee -a xray/password # Add (generates a random password, keep it)
-sed -i '/PASSWORD/d' xray/password # Delete (replace the `PASSWORD` with the one you want to remove)
+docker run --rm -it -v $PWD/xray:/xray bypasshub-xray xray-user add USERNAME # Add (generates a random password, keep it)
+docker run --rm -it -v $PWD/xray:/xray bypasshub-xray xray-user delete USERNAME # Delete
 ```
 
 For `OpenConnect`: (replace `USERNAME` with yours)
@@ -148,6 +148,11 @@ docker run --rm -it -v $PWD/ocserv:/ocserv bypasshub-ocserv ocpasswd -c /ocserv/
 > ```bash
 > docker restart bypasshub-xray-1
 > docker restart bypasshub-ocserv-1
+> ```
+> 
+> If the [`ENABLE_XRAY_SUBSCRIPTION`](#ENABLE_XRAY_SUBSCRIPTION) parameter is enabled, you also need to restart the `NGINX` container:
+> ```bash
+> docker restart bypasshub-nginx-1
 > ```
 
 ## Connecting from Client
