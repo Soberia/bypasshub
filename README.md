@@ -40,11 +40,11 @@ All of the containers run as a non-privileged user except the `OpenConnect`.
 
 # 📋 **How to Use**
 
-Make sure you've installed the [`Docker`](https://docs.docker.com/engine/install/) with [`Compose CLI`](https://docs.docker.com/compose/reference/) V2 support. Then, clone the repository:
+Make sure you've installed the [`Docker`](https://docs.docker.com/engine/install/) with [`Compose CLI`](https://docs.docker.com/compose/reference/) V2 support. Then, clone the repository and build the services:
 
 ```bash
 git clone https://github.com/Soberia/bypasshub.git
-cd bypasshub
+cd bypasshub && docker compose build
 ```
 
 ## Generating TLS Certificate
