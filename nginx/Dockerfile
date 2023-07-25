@@ -86,4 +86,4 @@ CMD \
         sleep 60; \
     done & \
 
-    nginx -c /tmp/nginx/nginx.conf -g 'daemon off;'
+    exec nginx -c /tmp/nginx/nginx.conf -g 'daemon off;'
