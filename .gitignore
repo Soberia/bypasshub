@@ -1,3 +1,6 @@
-xray/configs/*
-ocserv/configs/*
+nginx/static/*
+!nginx/static/index.html
+
 certbot/letsencrypt
+ocserv/configs/*
+xray/configs/*
