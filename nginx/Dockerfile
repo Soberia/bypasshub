@@ -1,4 +1,15 @@
-FROM nginx:stable
+FROM nginx:mainline as nginx
+RUN apt-get update && \
+    apt-get install -y wget git make gcc libpcre3-dev zlib1g-dev; \
+    wget http://nginx.org/download/nginx-$NGINX_VERSION.tar.gz; \
+    tar xf nginx-$NGINX_VERSION.tar.gz; \
+    cd nginx-$NGINX_VERSION; \
+    git clone --recurse-submodules --depth 1 https://github.com/google/ngx_brotli.git; \
+    ./configure --with-compat --add-dynamic-module=ngx_brotli; \
+    make modules;
+
+FROM nginx:mainline
+COPY --chmod=644 --from=nginx /nginx*/objs/*.so /usr/lib/nginx/modules/
 RUN apt-get update && \
     apt-get install -y --no-install-recommends iptables sudo; \
     apt-get clean; \
