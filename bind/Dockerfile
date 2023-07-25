@@ -23,7 +23,7 @@ CMD \
         sudo ip6tables -A INPUT -i eth0 $source -p udp --dport 53 -j ACCEPT; \
     fi; \
 
-    install -d -m 0775 /tmp/bind /tmp/bind/{cache,keys}; \
+    install -d -m 0755 /tmp/bind/{cache,keys}; \
     cp /etc/bind/named.conf /tmp/bind/named.conf; \
     cp /etc/bind/db.forward /tmp/bind/db.forward; \
 
