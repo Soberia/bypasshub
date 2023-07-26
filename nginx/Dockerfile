@@ -40,8 +40,8 @@ CMD \
         sudo ip6tables -A FORWARD -d $IPV6_SUBNET -j ACCEPT; \
     fi; \
 
+    install -d -m 0755 /tmp/nginx/{cache,log}; \
     rm -f /tmp/nginx/*.sock >/dev/null 2>&1; \
-    install -d -m 0775 /tmp/nginx /tmp/nginx/cache; \
     cp /etc/nginx/nginx.conf /tmp/nginx/nginx.conf; \
 
     # Finding local DNS resolver IP address
@@ -77,11 +77,11 @@ CMD \
 
     # Periodically clearing the logs
     if [ ! -z $NGINX_LOG_PURGE_INTERVAL ] && (( $NGINX_LOG_PURGE_INTERVAL > 0 )); then \
-        if [ ! -f /tmp/nginx/last-purge ]; then \
+        if [ ! -f /tmp/nginx/log/last-purge ]; then \
             last_purge=$(date '+%s'); \
-            echo $last_purge > /tmp/nginx/last-purge; \
+            echo $last_purge > /tmp/nginx/log/last-purge; \
         else \
-            last_purge=$(< /tmp/nginx/last-purge); \
+            last_purge=$(< /tmp/nginx/log/last-purge); \
         fi; \
 
         while true; do \
@@ -89,10 +89,10 @@ CMD \
             sleep_time=$NGINX_LOG_PURGE_INTERVAL; \
             current_time=$(date '+%s'); \
             if (( $current_time >= $due_date )); then \
-                echo -n | tee /tmp/nginx/{access,error,static}.log >/dev/null; \
+                echo -n | tee /tmp/nginx/log/{access,error,static}.log >/dev/null; \
                 kill -USR1 $(cat /tmp/nginx/nginx.pid); \
                 last_purge=$current_time; \
-                echo $current_time > /tmp/nginx/last-purge; \
+                echo $current_time > /tmp/nginx/log/last-purge; \
             else \
                 sleep_time=$(( $due_date - $current_time )); \
             fi; \

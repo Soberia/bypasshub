@@ -312,9 +312,9 @@ The persistence of the logs can be controlled by the [`NGINX_LOG_PURGE_INTERVAL`
 You can see the logs by running the following commands:
 
 ```bash
-docker exec bypasshub-nginx-1 cat /tmp/nginx/access.log # Clients access log
-docker exec bypasshub-nginx-1 cat /tmp/nginx/static.log # Dummy website access log
-docker exec bypasshub-nginx-1 cat /tmp/nginx/error.log
+docker exec bypasshub-nginx-1 cat /tmp/nginx/log/access.log # Clients access log
+docker exec bypasshub-nginx-1 cat /tmp/nginx/log/static.log # Dummy website access log
+docker exec bypasshub-nginx-1 cat /tmp/nginx/log/error.log
 ```
 
 ## Update Containers
