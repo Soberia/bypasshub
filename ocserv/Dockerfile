@@ -1,8 +1,38 @@
+ARG VERSION=1.1.7
+
+FROM ubuntu:rolling AS ocserv
+ARG VERSION
+RUN apt-get update && \
+    apt-get install -y wget xz-utils make gcc pkg-config autoconf automake \
+        nettle-dev libgnutls30 libgnutls28-dev libev-dev \
+        libseccomp-dev libreadline-dev libnl-route-3-dev; \
+    wget https://www.infradead.org/ocserv/download/ocserv-$VERSION.tar.xz; \
+    tar xf ocserv-$VERSION.tar.xz; \
+    cd ocserv-$VERSION; \
+    #
+    autoreconf -fvi; \
+    ./configure --disable-systemd --disable-compression \
+        --without-root-tests --without-asan-broken-tests \
+        --without-nuttcp-tests --without-tun-tests \
+        --without-http-parser --without-protobuf --without-maxmind \
+        --without-geoip --without-liboath --without-pam --without-radius \
+        --without-gssapi --without-pcl-lib --without-utmp \
+        --without-libwrap --without-lz4 --with-local-talloc \
+        --with-pager=""; \
+    make && make install;
+
 FROM ubuntu:rolling
 COPY --chmod=550 *.sh /usr/local/sbin/
+COPY --from=ocserv /usr/local/bin/ /usr/local/bin/
+COPY --from=ocserv /usr/local/sbin/ocserv* /usr/local/sbin/
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends ocserv gnutls-bin iproute2 iptables && \
+    apt-get install -y --no-install-recommends iptables iproute2 \
+        gnutls-bin libgnutls28-dev libev-dev libseccomp-dev \
+        libreadline-dev libnl-route-3-dev && \
     apt-get clean; \
+    #
+    useradd --system --user-group --no-create-home --home-dir /tmp/ocserv \
+        --shell /usr/sbin/nologin --uid 102 ocserv;
 
 SHELL ["bash", "-c"]
 CMD \
@@ -42,6 +72,7 @@ CMD \
         ip6tables -A FORWARD -s $OCSERV_IPV6_SUBNET -o eth0 -j ACCEPT; \
     fi; \
 
+    install -d -m 0755 --owner ocserv --group ocserv /tmp/ocserv; \
     rm -f /tmp/ocserv/ocserv.sock.* >/dev/null 2>&1; \
     cp /etc/ocserv/ocserv.conf /tmp/ocserv/ocserv.conf; \
 
