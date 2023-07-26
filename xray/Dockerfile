@@ -1,23 +1,15 @@
-FROM ubuntu:rolling
+ARG VERSION=1.8.3
 
+FROM ubuntu:rolling
+ARG VERSION
 SHELL ["bash", "-c"]
 RUN apt-get update && \
     apt-get install -y curl unzip; \
     apt-get install -y --no-install-recommends jq iptables sudo; \
     #
-    version=$(curl -sS https://api.github.com/repos/XTLS/Xray-core/releases/latest | \
-        sed 'y/,/\n/' | \
-        grep 'tag_name' | \
-        awk -F '"' '{print $4}' \
-    ); \
-    if [[ -z $version ]]; then \
-        >&2 echo "Can't find the latest Xray version number!"; \
-        exit 1; \
-    fi; \
-    #
     mkdir /tmp/xray && cd /tmp/xray; \
     curl -sSL -o archive.zip \
-        "https://github.com/XTLS/Xray-core/releases/download/$version/Xray-linux-64.zip"; \
+        "https://github.com/XTLS/Xray-core/releases/download/v$VERSION/Xray-linux-64.zip"; \
     unzip archive.zip; \
     install -m 755 xray /usr/local/bin/xray; \
     install -d /usr/local/share/xray; \
