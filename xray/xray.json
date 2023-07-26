@@ -39,12 +39,7 @@
             "path": "/ws"
           },
           {
-            "dest": "/tmp/nginx/fallback-h1.sock",
-            "alpn": "http/1.1"
-          },
-          {
-            "dest": "/tmp/nginx/fallback-h2.sock",
-            "alpn": "h2"
+            "dest": "/tmp/nginx/fallback.sock"
           }
         ]
       },
