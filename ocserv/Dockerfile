@@ -1,14 +1,8 @@
 FROM ubuntu:rolling
+COPY --chmod=550 *.sh /usr/local/sbin/
 RUN apt-get update && \
     apt-get install -y --no-install-recommends ocserv gnutls-bin iproute2 iptables && \
     apt-get clean; \
-    #
-    script=/var/run/proxy-ndp.sh; \
-    echo '#!/usr/bin/env bash' > $script; \
-    echo '[[ $ENABLE_IPV6 != "true" ]] && exit 0' >> $script; \
-    echo 'ip -6 neighbour $([[ $REASON == "connect" ]] && echo add || echo del) proxy $IPV6_REMOTE dev eth0' >> $script; \
-    echo 'exit 0' >> $script; \
-    chmod 550 $script;
 
 SHELL ["bash", "-c"]
 CMD \
