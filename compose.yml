@@ -195,6 +195,7 @@ services:
             - ./ocserv/ocserv.conf:/etc/ocserv/ocserv.conf:ro
             - ./certbot/letsencrypt/live/$DOMAIN:/etc/letsencrypt/live/$DOMAIN:ro
             - ./certbot/letsencrypt/archive/$DOMAIN:/etc/letsencrypt/archive/$DOMAIN:ro
+            - temp:/tmp
         networks:
             - general
         cap_add:

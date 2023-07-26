@@ -42,8 +42,10 @@ CMD \
         ip6tables -A FORWARD -s $OCSERV_IPV6_SUBNET -o eth0 -j ACCEPT; \
     fi; \
 
+    rm -f /tmp/ocserv/ocserv.sock.* >/dev/null 2>&1; \
+    cp /etc/ocserv/ocserv.conf /tmp/ocserv/ocserv.conf; \
+
     # Injecting the environment variables
-    cp /etc/ocserv/ocserv.conf /var/run/ocserv.conf; \
     declare -a envs=( \
         'DOMAIN' \
         'OCSERV_DTLS_PORT' \
@@ -55,9 +57,9 @@ CMD \
     ); \
     for env in "${envs[@]}"; do \
         if [[ $env == *"IPV6"* && ( $ENABLE_IPV6 != 'true' || -z ${!env} ) ]]; then \
-            sed -i "/\$$env/d" /var/run/ocserv.conf; \
+            sed -i "/\$$env/d" /tmp/ocserv/ocserv.conf; \
         else \
-            sed -i "s|\$$env|${!env}|g" /var/run/ocserv.conf; \
+            sed -i "s|\$$env|${!env}|g" /tmp/ocserv/ocserv.conf; \
         fi; \
     done; \
 
@@ -67,7 +69,7 @@ CMD \
             --ask \
             --load-cert /etc/letsencrypt/live/$DOMAIN/fullchain.pem \
             --load-issuer /etc/letsencrypt/live/$DOMAIN/chain.pem \
-            --outfile /var/run/ocsp.der; \
+            --outfile /tmp/ocserv/ocsp.der; \
         sleep 3600; \
     done & \
 
@@ -76,4 +78,4 @@ CMD \
     mknod /dev/net/tun c 10 200; \
     chmod 600 /dev/net/tun; \
 
-    ocserv --foreground --config /var/run/ocserv.conf
+    ocserv --foreground --config /tmp/ocserv/ocserv.conf
