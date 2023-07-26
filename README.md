@@ -308,7 +308,7 @@ ip6tables -A FORWARD -s $IPV6_SUBNET -o eth0 -j ACCEPT
 
 ## Logs
 
-All the logs will be cleared every 24 hours.  
+The persistence of the logs can be controlled by the [`NGINX_LOG_PURGE_INTERVAL`](#NGINX_LOG_PURGE_INTERVAL) parameter.  
 You can see the logs by running the following commands:
 
 ```bash
@@ -359,8 +359,6 @@ Variable                                                              | Type   |
 <span id="ENABLE_CERTBOT">ENABLE_CERTBOT</span>                       | switch | Enables the `certbot` and `BIND` DNS server for generating the TLS certificate.
 <span id="ENABLE_CERTBOT_STANDALONE">ENABLE_CERTBOT_STANDALONE</span> | switch | Enables the `certbot` for generating the TLS certificate.
 <span id="ENABLE_XRAY">ENABLE_XRAY</span>                             | switch | Enables the `Xray-core` proxy server.
-<span id="ENABLE_XRAY_CDN">ENABLE_XRAY_CDN</span>                     | switch | Enables the `Xray-core` proxy server to work behind the CDN.
-<span id="ENABLE_XRAY_SUBSCRIPTION">ENABLE_XRAY_SUBSCRIPTION</span>   | switch | Enables the `Xray-core` clients to access the configs by a subscription URL. Only authorized users have access to the subscription by providing their credentials.
 <span id="ENABLE_OCSERV">ENABLE_OCSERV</span>                         | switch | Enables the `OpenConnect` VPN server.
 <span id="DOMAIN">DOMAIN</span>                                       | string | The domain to use for the web server and other TLS-based services.
 <span id="XRAY_SNI">XRAY_SNI</span>                                   | string | The SNI value for routing traffic to the `Xray-core` proxy server.
@@ -384,3 +382,6 @@ Variable                                                              | Type   |
 <span id="BIND_IPV6">BIND_IPV6</span>                                 | string | The IPv6 address to allocate to the `BIND` container. This address must be in [`IPV6_SUBNET`](#IPV6_SUBNET) range.
 <span id="OCSERV_IPV6_SUBNET">OCSERV_IPV6_SUBNET</span>               | string | The `OpenConnect` VPN server's IPv6 network address. This address must be in [`IPV6_SUBNET`](#IPV6_SUBNET) range.
 <span id="OCSERV_CLIENTS_IPV6_CIDR">OCSERV_CLIENTS_IPV6_CIDR</span>   | number | The IPv6 network size that will be provided to the `OpenConnect` VPN server clients.
+<span id="ENABLE_XRAY_CDN">ENABLE_XRAY_CDN</span>                     | switch | Enables the `Xray-core` proxy server to work behind the CDN.
+<span id="ENABLE_XRAY_SUBSCRIPTION">ENABLE_XRAY_SUBSCRIPTION</span>   | switch | Enables the `Xray-core` clients to access the configs by a subscription URL. Only authorized users have access to the subscription by providing their credentials.
+<span id="NGINX_LOG_PURGE_INTERVAL">NGINX_LOG_PURGE_INTERVAL</span>   | number | The interval in seconds that `NGINX` logs would be cleared. The value of `0`, keeps the logs forever.

@@ -92,6 +92,7 @@ services:
             DNS_IPV6: $DNS_IPV6
             ENABLE_IPV6: $ENABLE_IPV6
             IPV6_SUBNET: $IPV6_SUBNET
+            NGINX_LOG_PURGE_INTERVAL: $NGINX_LOG_PURGE_INTERVAL
             COMPOSE_PROFILES: ${COMPOSE_PROFILES:?}
         <<: *common
 

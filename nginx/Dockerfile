@@ -75,15 +75,29 @@ CMD \
         sed -i "s|\$$env|${!env}|g" /tmp/nginx/nginx.conf; \
     done; \
 
-    # Daily clearing the logs
-    due_date=$(date '+%s' -d "+1 days"); \
-    while true; do \
-        if [ $(date '+%s') -gt $due_date ]; then \
-            echo -n | tee /tmp/nginx/{access,error,static}.log >/dev/null; \
-            kill -USR1 $(cat /tmp/nginx/nginx.pid); \
-            due_date=$(date '+%s' -d "+1 days"); \
+    # Periodically clearing the logs
+    if [ ! -z $NGINX_LOG_PURGE_INTERVAL ] && (( $NGINX_LOG_PURGE_INTERVAL > 0 )); then \
+        if [ ! -f /tmp/nginx/last-purge ]; then \
+            last_purge=$(date '+%s'); \
+            echo $last_purge > /tmp/nginx/last-purge; \
+        else \
+            last_purge=$(< /tmp/nginx/last-purge); \
         fi; \
-        sleep 60; \
-    done & \
+
+        while true; do \
+            due_date=$(( $last_purge + $NGINX_LOG_PURGE_INTERVAL )); \
+            sleep_time=$NGINX_LOG_PURGE_INTERVAL; \
+            current_time=$(date '+%s'); \
+            if (( $current_time >= $due_date )); then \
+                echo -n | tee /tmp/nginx/{access,error,static}.log >/dev/null; \
+                kill -USR1 $(cat /tmp/nginx/nginx.pid); \
+                last_purge=$current_time; \
+                echo $current_time > /tmp/nginx/last-purge; \
+            else \
+                sleep_time=$(( $due_date - $current_time )); \
+            fi; \
+            sleep $sleep_time; \
+        done & \
+    fi; \
 
     exec nginx -c /tmp/nginx/nginx.conf -g 'daemon off;'
