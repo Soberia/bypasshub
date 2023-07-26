@@ -35,13 +35,15 @@ CMD \
     ip6tables -A INPUT -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT; \
     ip6tables -A INPUT -i lo -j ACCEPT; \
     ip6tables -A INPUT -i eth0 -p ipv6-icmp -j ACCEPT; \
-    if [[ $ENABLE_IPV6 == 'true' && ! -z $IPV6_SUBNET && ! -z $OCSERV_IPV6_SUBNET && ! -z $BIND_IPV6 ]]; then \
+    if [[ $ENABLE_IPV6 == 'true' && ! -z $IPV6_SUBNET ]] && \
+        [ ! -z $OCSERV_IPV6_SUBNET && ! -z $BIND_IPV6 && ! -z $NGINX_IPV6 ]; then \
         ip6tables -A INPUT -i eth0 -s $IPV6_SUBNET -p tcp --dport 443 -j ACCEPT; \
         ip6tables -A INPUT -i eth0 -s $IPV6_SUBNET -p udp --dport $OCSERV_DTLS_PORT -j ACCEPT; \
         ip6tables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT; \
         ip6tables -A FORWARD -i eth0 -d $OCSERV_IPV6_SUBNET -j ACCEPT; \
         ip6tables -A FORWARD -s $OCSERV_IPV6_SUBNET -o eth0 -d $BIND_IPV6 -p udp --dport 53 -j ACCEPT; \
         ip6tables -A FORWARD -s $OCSERV_IPV6_SUBNET -o eth0 -d $BIND_IPV6 -p tcp --dport 53 -j ACCEPT; \
+        ip6tables -A FORWARD -s $OCSERV_IPV6_SUBNET -o eth0 -d $NGINX_IPV6 -p tcp --dport $TLS_PORT -j ACCEPT; \
         ip6tables -A FORWARD -s $OCSERV_IPV6_SUBNET -o eth0 -d $IPV6_SUBNET,fd00::/8 -j DROP; \
         ip6tables -A FORWARD -s $OCSERV_IPV6_SUBNET -o eth0 -j ACCEPT; \
     fi; \
