@@ -1,3 +1,8 @@
+bypasshub/build
+bypasshub/bypasshub.egg-info
+bypasshub/database/*
+bypasshub/**/*.py[cod]
+
 nginx/static/*
 !nginx/static/index.html
 

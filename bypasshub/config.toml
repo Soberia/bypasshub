@@ -1,0 +1,56 @@
+[main]
+# The services to be enabled for managing.
+manage_xray = true
+manage_openconnect = true
+
+# The maximum allowed users to be created on the database.
+# Specifying Zero means unlimited.
+max_users = 0
+# The maximum allowed users to be created on the database
+# that have an active plan. A plan is considered active
+# when still has time and traffic.
+# Specifying Zero means unlimited.
+max_active_users = 0
+
+# The connection timeout for communicating with the services.
+service_timeout = 3 # Second
+
+# The monitor procedure interval that tracks users traffic
+# usage and removes them from the services if they don't
+# have an active plan anymore.
+monitor_interval = 10 # Second
+# The services synchronization with the database interval.
+# This interval is calculated by multiplying this value to
+# the `monitor_interval`.
+# Specify Zero to disable the synchronization.
+# The synchronization is necessary when the database is
+# intended to be manually modified (or by other external
+# processes for example if the database is shared with
+# multiple servers). Otherwise, it may be disabled but it's
+# recommended to stay enabled if system resources
+# limitation is not the concern.
+monitor_passive_steps = 3
+# Whether to remove the users that doesn't exist on the
+# database but are active and connected to the services.
+monitor_zombies = true
+
+temp_path = "/tmp/bypasshub"
+xray_cdn_ips_path = "/tmp/xray/cdn-ips"
+xray_api_socket_path = "/tmp/xray/api.sock"
+occtl_broker_socket_path = "/tmp/ocserv/message-broker.sock"
+nginx_fallback_socket_path = "/tmp/nginx/fallback.sock"
+
+[log]
+# The log rotation backup size.
+# Specify Zero to disable log rotation.
+size = 10 # MiB
+level = "debug"
+store = true
+stdout_traceback = false
+path = "/tmp/bypasshub/log"
+
+[database]
+# The database auto backup interval.
+# Specify Zero to disable auto backup.
+backup_interval = 86400 # Second
+path = "/var/lib/bypasshub/index.db"

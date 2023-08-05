@@ -126,42 +126,19 @@ All you have to do for regenerating the certificate is to temporarily stop the c
 > - [`XRAY_CDN_SNI`](#XRAY_CDN_SNI)
 > - [`OCSERV_SNI`](#OCSERV_SNI)
 
-## Managing Users
+## Running Containers
 
-For `Xray-core`: (replace `USERNAME` with yours)
-
-```bash
-docker run --rm -it -v $PWD/xray:/xray bypasshub-xray xray-user add USERNAME # Add (generates a random password, keep it)
-docker run --rm -it -v $PWD/xray:/xray bypasshub-xray xray-user delete USERNAME # Delete
-```
-
-For `OpenConnect`: (replace `USERNAME` with yours)
-
-```bash
-docker run --rm -it -v $PWD/ocserv:/ocserv bypasshub-ocserv ocpasswd -c /ocserv/password USERNAME # Add (you'll be asked to enter the password)
-docker run --rm -it -v $PWD/ocserv:/ocserv bypasshub-ocserv ocpasswd -c /ocserv/password -d USERNAME # Delete
-```
-
-> **Note**  
-> After modifications, you must restart the related container if it's running for changes to take effect:
-> 
-> ```bash
-> docker restart bypasshub-xray-1
-> docker restart bypasshub-ocserv-1
-> ```
-> 
-> If the [`ENABLE_XRAY_SUBSCRIPTION`](#ENABLE_XRAY_SUBSCRIPTION) parameter is enabled, you also need to restart the `NGINX` container:
-> ```bash
-> docker restart bypasshub-nginx-1
-> ```
-
-## Connecting from Client
-
-After [getting your certificate](#generating-tls-certificate) and [adding your credentials](#managing-users), you can bring the containers up:
+After [getting your certificate](#generating-tls-certificate), you can bring the containers up:
 
 ```bash
 docker compose up -d
 ```
+
+## Managing Users
+
+See the [user management](bypasshub/README.md) page.
+
+## Connecting from Client
 
 Get the [`Xray-core`](https://github.com/XTLS/Xray-core) and [`OpenConnect`](https://gitlab.com/openconnect/openconnect) clients for your devices.
 

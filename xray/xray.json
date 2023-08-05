@@ -3,6 +3,11 @@
     "loglevel": "warning",
     "access": "none"
   },
+  "stats": {},
+  "api": {
+    "tag": "api",
+    "services": ["HandlerService", "StatsService"]
+  },
   "dns": {
     "disableCache": true,
     "servers": ["bind"]
@@ -11,12 +16,19 @@
     "levels": {
       "0": {
         "connIdle": 3600,
-        "bufferSize": 512
+        "bufferSize": 512,
+        "statsUserUplink": true,
+        "statsUserDownlink": true
       }
     }
   },
   "routing": {
     "rules": [
+      {
+        "type": "field",
+        "inboundTag": ["api"],
+        "outboundTag": "api"
+      },
       {
         "type": "field",
         "port": 53,
@@ -26,6 +38,15 @@
     ]
   },
   "inbounds": [
+    {
+      "tag": "api",
+      "protocol": "dokodemo-door",
+      "listen": "/tmp/xray/api.sock,766",
+      "settings": {
+        "address": "",
+        "network": "unix"
+      }
+    },
     {
       "tag": "vless-tcp",
       "protocol": "vless",

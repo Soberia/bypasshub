@@ -1,0 +1,29 @@
+{
+	"name": "bypasshub-dev",
+	"dockerComposeFile": [
+		"compose.yml",
+		"compose.dev.yml"
+	],
+	"service": "bypasshub",
+	"shutdownAction": "none",
+	"workspaceFolder": "/usr/local/src/bypasshub",
+	"onCreateCommand": [
+		"pip",
+		"install",
+		"--editable",
+		"/usr/local/src/bypasshub[dev]"
+	],
+	"customizations": {
+		"vscode": {
+			"settings": {
+				"terminal.integrated.defaultProfile.linux": "bash",
+				"python.formatting.provider": "black"
+			},
+			"extensions": [
+				"ms-python.python",
+				"streetsidesoftware.code-spell-checker",
+				"yy0931.vscode-sqlite3-editor"
+			]
+		}
+	}
+}

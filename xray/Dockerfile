@@ -21,20 +21,6 @@ RUN apt-get update && \
     apt-get -y autoremove; \
     apt-get clean; \
     #
-    script=/usr/local/bin/xray-user; \
-    echo '#!/usr/bin/env bash' > $script; \
-    echo 'username=$(echo $2 | tr "[:upper:]" "[:lower:]")' >> $script; \
-    echo '[[ $username = *[[:space:]]* ]] && echo "Invalid username!" && exit 1' >> $script; \
-    echo 'if [ $1 = "add" ]; then' >> $script; \
-    echo '    grep -q " $username\$" /xray/password && echo "Username already exist!" && exit 1' >> $script; \
-    echo '    uuid=$(xray uuid)' >> $script; \
-    echo '    echo "$uuid $username" >> /xray/password' >> $script; \
-    echo '    echo $uuid' >> $script; \
-    echo 'elif [ $1 = "delete" ]; then' >> $script; \
-    echo '    sed -i "/ $username\$/d" /xray/password' >> $script; \
-    echo 'fi' >> $script; \
-    chmod +x $script; \
-    #
     useradd --gid proxy xray; \
     echo 'xray ALL=(root) NOPASSWD: /usr/sbin/iptables, /usr/sbin/ip6tables' >> /etc/sudoers;
 
@@ -66,8 +52,9 @@ CMD \
 
     > /tmp/xray/uuids; \
     > /tmp/xray/urls.txt; \
-    rm -f /tmp/xray/*.sock >/dev/null 2>&1; \
     install -d -m 0755 /tmp/xray; \
+    rm -f /tmp/xray/*.sock >/dev/null 2>&1; \
+    cp -f /usr/local/etc/xray/xray.json /tmp/xray/xray.json; \
 
     # Generateing subscription share URLs
     if [[ $ENABLE_XRAY_SUBSCRIPTION == 'true' ]]; then \
@@ -94,35 +81,47 @@ CMD \
         fi; \
     fi; \
 
-    # Injecting the passwords
-    clients_tcp=""; \
-    clients_ws=""; \
-    readarray -t passwords < /var/run/secrets/password; \
-    if [ ! -z "${passwords}" ]; then \
-        for line in "${passwords[@]}"; do \
-            if [ ! -z "${line// }" ]; then \
-                line=($line); \
-                shared="\"email\": \"${line[1]}@$DOMAIN\",\"id\": \"${line[0]}\""; \
-                clients_tcp+="{\"flow\": \"xtls-rprx-vision\",$shared},"; \
-                if [[ $ENABLE_XRAY_CDN == 'true' ]]; then \
-                    clients_ws+="{\"flow\": null,$shared},"; \
-                fi; \
-                if [[ $ENABLE_XRAY_SUBSCRIPTION == 'true' ]]; then \
-                    echo "${line[0]} ${line[0]};" >> /tmp/xray/uuids; \
-                fi; \
+    # Injecting the environment variables
+    sed -i "s|\$DOMAIN|$DOMAIN|g" /tmp/xray/xray.json; \
+
+    # Waiting for the users to be generated
+    timeout=5; \
+    current_time=$(date '+%s'); \
+    while (( $timeout > 0 )); do \
+        if [ -s /tmp/bypasshub/last-generate ] && \
+            (( $(< /tmp/bypasshub/last-generate) >= $current_time )); then \
+            break; \
+        fi; \
+
+        (( timeout-- )); \
+        sleep 1; \
+    done; \
+
+    # Injecting the users
+    readarray -t users < /tmp/bypasshub/users; \
+    if [ ! -z "${users}" ]; then \
+        clients_tcp=""; \
+        clients_ws=""; \
+        for user in "${users[@]}"; do \
+            user=($user); \
+            shared="\"email\":\"${user[0]}@$DOMAIN\",\"id\":\"${user[1]}\""; \
+            clients_tcp+="{\"flow\":\"xtls-rprx-vision\",$shared},"; \
+            if [[ $ENABLE_XRAY_CDN == 'true' ]]; then \
+                clients_ws+="{\"flow\":null,$shared},"; \
+            fi; \
+            if [[ $ENABLE_XRAY_SUBSCRIPTION == 'true' ]]; then \
+                echo "${user[0]} ${user[0]};" >> /tmp/xray/uuids; \
             fi; \
         done; \
         [[ $ENABLE_XRAY_CDN != 'true' ]] && clients_ws=','; \
-        jq ".inbounds[0].settings.clients += [${clients_tcp::-1}] | \
-            .inbounds[1].settings.clients += [${clients_ws::-1}]" \
-            /usr/local/etc/xray/xray.json > /tmp/xray/xray.json; \
-        unset passwords line shared clients_tcp clients_ws; \
-    else \
-        cp -f /usr/local/etc/xray/xray.json /tmp/xray/xray.json; \
+        json=$(jq \
+            ".inbounds[1].settings.clients += [${clients_tcp::-1}] | \
+            .inbounds[2].settings.clients += [${clients_ws::-1}]" \
+            /tmp/xray/xray.json \
+        ); \
+        echo -E "$json" > /tmp/xray/xray.json; \
+        unset users user shared json clients_tcp clients_ws; \
     fi; \
-
-    # Injecting the environment variables
-    sed -i "s|\$DOMAIN|$DOMAIN|g" /tmp/xray/xray.json; \
 
     /usr/local/bin/xray run \
         -config /tmp/xray/xray.json \

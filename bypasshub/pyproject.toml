@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bypasshub"
+version = "0.1.0"
+description = "User management system for 'bypasshub'"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT License"}
+authors = [{ name = "Saber Hayati", email = "SaberHayati@outlook.com" }]
+keywords = ["ocserv", "OpenConnect", "Xray-core", "NGINX", "VPN", "Proxy"]
+urls = { homepage = "https://github.com/Soberia/bypasshub" }
+dependencies = [
+    "orjson~=3.9.2",
+    "fastapi~=0.100.1",
+    "grpcio==1.56.2",
+    "grpcio-tools==1.56.2",
+    "uvicorn[standard]~=0.23.2"
+]
+optional-dependencies = { dev = ["black"] }
+scripts = { bypasshub = "bypasshub.__main__:run" }
+classifiers = [
+    "Topic :: System :: Networking",
+    "Topic :: System :: Networking :: Monitoring",
+    "Topic :: Internet :: Proxy Servers",
+    "Framework :: FastAPI",
+    "Programming Language :: Python",
+    "Operating System :: POSIX :: Linux",
+    "License :: OSI Approved :: MIT License"
+]
+
+[tool.setuptools]
+packages = ["bypasshub"]

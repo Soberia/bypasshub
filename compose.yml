@@ -56,13 +56,29 @@ networks:
                 - subnet: 192.168.100.0/29
                 - subnet: ${IPV6_SUBNET:-::/128}
 
-secrets:
-    xray:
-        file: ./xray/password
-    ocserv:
-        file: ./ocserv/password
-
 services:
+    bypasshub:
+        build: ./bypasshub
+        volumes:
+            - ./bypasshub:/usr/local/src/bypasshub:ro
+            - ./bypasshub/database:/var/lib/bypasshub
+            - temp:/tmp
+        networks:
+            general:
+        profiles:
+            - default
+        environment:
+            DOMAIN: $DOMAIN
+            ENABLE_XRAY_CDN: $ENABLE_XRAY_CDN
+            ENABLE_XRAY_SUBSCRIPTION: $ENABLE_XRAY_SUBSCRIPTION
+            XRAY_SNI: $XRAY_SNI
+            XRAY_CDN_SNI: $XRAY_CDN_SNI
+            TLS_PORT: $TLS_PORT
+            CDN_TLS_PORT: $CDN_TLS_PORT
+            COMPOSE_PROFILES: ${COMPOSE_PROFILES:?}
+        stop_grace_period: 20s
+        <<: *common
+
     nginx:
         build: ./nginx
         volumes:
@@ -165,14 +181,10 @@ services:
         cap_add:
             - NET_ADMIN # for iptables
         depends_on:
-            - nginx
+            - bypasshub
             - bind
         profiles:
             - xray
-        secrets:
-            - source: xray
-              target: password
-              mode: 0440
         environment:
             DOMAIN: $DOMAIN
             ENABLE_XRAY_CDN: $ENABLE_XRAY_CDN
@@ -202,14 +214,10 @@ services:
             - NET_ADMIN
             - CAP_MKNOD
         depends_on:
-            - nginx
+            - bypasshub
             - bind
         profiles:
             - ocserv
-        secrets:
-            - source: ocserv
-              target: password
-              mode: 0400
         sysctls:
             <<: *sysctls
             net.ipv4.ip_forward: 1

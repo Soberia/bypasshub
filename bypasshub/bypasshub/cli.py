@@ -1,0 +1,420 @@
+import logging
+import argparse
+from typing import Any
+from contextlib import suppress
+from collections.abc import Sequence
+
+import orjson
+from click import style
+
+from . import __version__
+from .utils import gather
+from .errors import BaseError
+from .managers import Manager
+from .database import Database
+from .log import modify_console_logger, modify_handler
+
+logger = logging.getLogger(__name__)
+
+
+class UsernameAction(argparse.Action):
+    """Custom action which only stores the unique values."""
+
+    def __call__(
+        self,
+        parser: argparse.ArgumentParser,
+        namespace: argparse.Namespace,
+        values: str | Sequence[Any] | None,
+        option_string: str | None = None,
+    ) -> None:
+        setattr(namespace, self.dest, set(values))
+
+
+class DateAction(argparse.Action):
+    """Custom action which converts the value to the integer if possible."""
+
+    def __call__(
+        self,
+        parser: argparse.ArgumentParser,
+        namespace: argparse.Namespace,
+        values: str | Sequence[Any] | None,
+        option_string: str | None = None,
+    ) -> None:
+        with suppress(ValueError):
+            values = int(values)
+
+        setattr(namespace, self.dest, values)
+
+
+class ArgumentParser(argparse.ArgumentParser):
+    """Custom argument parser which capitalizes the output message."""
+
+    class _ArgumentGroup(argparse._ArgumentGroup):
+        def __init__(self, *args, **kwargs) -> None:
+            super().__init__(*args, **kwargs)
+            self.title = self.title and self.title.title()
+
+    class _HelpFormatter(argparse.RawDescriptionHelpFormatter):
+        def _format_usage(self, *args, **kwargs) -> str:
+            return super()._format_usage(*args, **kwargs).replace("usage:", "Usage:", 1)
+
+        def _format_action(self, action: argparse.Action) -> str:
+            parts = super()._format_action(action)
+            if action.nargs == argparse.PARSER:
+                parts = "\n".join(parts.split("\n")[1:])
+            return parts
+
+        def _format_action_invocation(self, action: argparse.Action) -> str:
+            action.help = action.help and (action.help[0].upper() + action.help[1:])
+            formatted = super()._format_action_invocation(action)
+
+            # Only keeping the last `metavar`
+            if action.option_strings and action.nargs != 0:
+                formatted = formatted.replace(
+                    (
+                        " "
+                        + self._format_args(
+                            action, self._get_default_metavar_for_optional(action)
+                        )
+                    ),
+                    "",
+                    len(action.option_strings) - 1,
+                )
+
+            return formatted
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs, formatter_class=self._HelpFormatter)
+
+    def add_argument_group(self, *args, **kwargs) -> _ArgumentGroup:
+        group = self._ArgumentGroup(self, *args, **kwargs)
+        self._action_groups.append(group)
+        return group
+
+
+class CLI:
+    """The command line interface.
+
+    Returns:
+        Whether any command is executed.
+    """
+
+    def __await__(self) -> bool:
+        return self._run().__await__()
+
+    def _setup_parser(self) -> None:
+        self._parser = parser = ArgumentParser(
+            prog=__package__,
+            epilog="Run '%(prog)s COMMAND --help' for more information on a command",
+        )
+
+        parser.add_argument(
+            "-v", "--version", action="version", version=f"%(prog)s {__version__}"
+        )
+        parser.add_argument(
+            "--debug", "--verbose", action="store_true", help="Show more log"
+        )
+
+        subparser = parser.add_subparsers(
+            title="commands", dest="command", metavar="[command]"
+        )
+        self._user = user = subparser.add_parser("user", help="Manage the users")
+        self._plan = plan = subparser.add_parser("plan", help="Update the user's plan")
+        self._info = info = subparser.add_parser("info", help="Get the users' info")
+        self._database = database = subparser.add_parser(
+            "database", help="Manage the database"
+        )
+
+        username_arguments = {
+            "action": UsernameAction,
+            "nargs": "+",
+            "help": "The user's username. Multiple usernames could be specified",
+        }
+
+        user.add_argument("username", **username_arguments)
+        user.add_argument("-a", "--add", action="store_true", help="Add a user")
+        user.add_argument("-d", "--delete", action="store_true", help="Delete a user")
+        user.add_argument(
+            "--reset-total-traffic",
+            action="store_true",
+            help="Reset the user's total traffic consumption",
+        )
+        plan.add_argument("username", **username_arguments)
+        plan.add_argument(
+            "-s",
+            "--start-date",
+            action=DateAction,
+            metavar="<DATE | INT>",
+            help=(
+                "The plan start date in ISO 8601 format or UNIX timestamp."
+                " If not specified, no time restriction will be applied"
+            ),
+        )
+        plan.add_argument(
+            "-d",
+            "--duration",
+            type=int,
+            metavar="<INT>",
+            help="The plan duration in seconds",
+        )
+        plan.add_argument(
+            "-t",
+            "--traffic",
+            type=int,
+            metavar="<INT>",
+            help=(
+                "The plan traffic limit in bytes."
+                " If not specified, no traffic restriction will be applied"
+            ),
+        )
+        plan.add_argument(
+            "-e",
+            "--extra-traffic",
+            type=int,
+            metavar="<INT>",
+            help=(
+                "The plan extra traffic limit in bytes."
+                " If user's plan traffic limit is reached, this value will be consumed"
+                " instead for managing the user's traffic usage"
+            ),
+        )
+        plan.add_argument(
+            "--reset-extra-traffic",
+            default=None,
+            action="store_true",
+            help="Reset the extra traffic limit",
+        )
+        plan.add_argument(
+            "--preserve-traffic",
+            default=None,
+            action="store_true",
+            help="Do not reset the recorded traffic usage from the previous plan",
+        )
+        info.add_argument(
+            "-u", "--users", action="store_true", help="Show all the users"
+        )
+        info.add_argument(
+            "-c", "--capacity", action="store_true", help="Show count of all the users"
+        )
+        info.add_argument(
+            "-a",
+            "--active-capacity",
+            action="store_true",
+            help="Show count of all the users that have an active plan",
+        )
+        info.add_argument(
+            "--credentials",
+            metavar="<USERNAME>",
+            help="Show the user's credentials",
+        )
+        info.add_argument("--plan", metavar="<USERNAME>", help="Show the user's plan")
+        info.add_argument(
+            "--total-traffic",
+            metavar="<USERNAME>",
+            help="Show the user's total traffic consumption in bytes",
+        )
+        info.add_argument(
+            "--is-exist",
+            metavar="<USERNAME>",
+            help="Show whether the user exists in the database",
+        )
+        info.add_argument(
+            "--has-active-plan",
+            metavar="<USERNAME>",
+            help=(
+                "Show whether the user has an active plan."
+                " A plan is considered active when still has time and traffic"
+            ),
+        )
+        info.add_argument(
+            "--has-unlimited-time",
+            metavar="<USERNAME>",
+            help="Show whether the user has an unrestricted time plan",
+        )
+        info.add_argument(
+            "--has-unlimited-traffic",
+            metavar="<USERNAME>",
+            help="Show whether the user has an unrestricted traffic plan",
+        )
+        info.add_argument(
+            "--subscription",
+            metavar="<USERNAME>",
+            help="Generate 'Xray-core' config URLs for the user",
+        )
+        database.add_argument(
+            "-s",
+            "--sync",
+            action="store_true",
+            help="Manually synchronize the services with the database",
+        )
+        database.add_argument(
+            "-d",
+            "--dump",
+            action="store_true",
+            help="Dump the database as JSON to the STDOUT",
+        )
+        database.add_argument(
+            "-b",
+            "--backup",
+            metavar="<SUFFIX>",
+            nargs="?",
+            const="",
+            help="Generate and store a database backup (default: %%timestamp%%.bak)",
+        )
+
+    async def _exec(self, command: str) -> None:
+        arguments = self._arguments
+        async with Manager() as manager:
+            try:
+                match command:
+                    case "user":
+                        if arguments.add:
+                            (credentials, exceptions) = await gather(
+                                [
+                                    manager.add_user(username)
+                                    for username in arguments.username
+                                ]
+                            )
+
+                            for exception in exceptions:
+                                if isinstance(exception, ExceptionGroup):
+                                    (exception,) = exception.exceptions
+                                logger.error(exception)
+
+                            if credentials:
+                                print(
+                                    style(f"{'Users Credentials':-^42}", fg="cyan"),
+                                    "\n".join(
+                                        [
+                                            f"{credential['username']}@{credential['uuid']}"
+                                            for credential in credentials
+                                        ]
+                                    ),
+                                    sep="\n",
+                                )
+                        elif arguments.delete:
+                            for exception in (
+                                await gather(
+                                    [
+                                        manager.delete_user(username)
+                                        for username in arguments.username
+                                    ]
+                                )
+                            )[1]:
+                                if isinstance(exception, ExceptionGroup):
+                                    (exception,) = exception.exceptions
+                                logger.error(exception)
+                        elif arguments.reset_total_traffic:
+                            for username in arguments.username:
+                                manager.reset_total_traffic(username)
+                        else:
+                            self._user.print_help()
+                    case "plan":
+                        for exception in (
+                            await gather(
+                                [
+                                    manager.update_plan(
+                                        username,
+                                        start_date=arguments.start_date,
+                                        duration=arguments.duration,
+                                        traffic=arguments.traffic,
+                                        extra_traffic=arguments.extra_traffic,
+                                        reset_extra_traffic=arguments.reset_extra_traffic,
+                                        preserve_traffic_usage=arguments.preserve_traffic,
+                                    )
+                                    for username in arguments.username
+                                ]
+                            )
+                        )[1]:
+                            logger.error(
+                                repr(exception)
+                                if isinstance(exception, BaseError)
+                                else exception
+                            )
+                    case "info":
+                        if arguments.users:
+                            print(*manager.usernames, sep="\n")
+                        elif arguments.capacity:
+                            print(manager.capacity)
+                        elif arguments.active_capacity:
+                            print(manager.active_capacity)
+                        elif username := arguments.credentials:
+                            credentials = manager.get_credentials(username)
+                            print(f"{credentials['username']}@{credentials['uuid']}")
+                        elif username := arguments.plan:
+                            print(
+                                *[
+                                    (
+                                        f"{key.replace('plan_', '').replace('_', '-')}:"
+                                        f" {'-' if value is None else value}"
+                                    )
+                                    for key, value in manager.get_plan(username).items()
+                                ],
+                                sep="\n",
+                            )
+                        elif username := arguments.total_traffic:
+                            print(
+                                *[
+                                    f"{key}: {value}"
+                                    for key, value in manager.get_total_traffic(
+                                        username
+                                    ).items()
+                                ],
+                                sep="\n",
+                            )
+                        elif username := arguments.is_exist:
+                            print(manager.is_exist(username))
+                        elif username := arguments.has_active_plan:
+                            print(manager.has_active_plan(username))
+                        elif username := arguments.has_unlimited_time:
+                            print(manager.has_unlimited_time_plan(username))
+                        elif username := arguments.has_unlimited_traffic:
+                            print(manager.has_unlimited_traffic_plan(username))
+                        elif username := arguments.subscription:
+                            print(
+                                manager._xray.generate_subscription(
+                                    manager.get_credentials(username)["uuid"]
+                                )
+                            )
+                        else:
+                            self._info.print_help()
+                    case "database":
+                        if arguments.sync:
+                            print(
+                                "Services are"
+                                f" {'synced' if (await manager.sync()) else 'in sync'}"
+                            )
+                        elif arguments.dump:
+                            print(
+                                orjson.dumps(
+                                    Database.dump(), option=orjson.OPT_INDENT_2
+                                ).decode()
+                            )
+                        elif (suffix := arguments.backup) is not None:
+                            Database.backup(suffix and f".{suffix}")
+                            print("Database backup is located in: ./database/backup")
+                        else:
+                            self._database.print_help()
+            except Exception as error:
+                logger.exception(repr(error) if isinstance(error, BaseError) else error)
+                self._parser.exit(1)
+
+    async def _run(self) -> bool:
+        self._setup_parser()
+        self._arguments = self._parser.parse_args()
+        if self._arguments.debug:
+            modify_console_logger(True)
+            modify_handler("console", traceback=True, level=logging.DEBUG)
+        else:
+            # Temporarily avoiding to store the traceback
+            modify_handler("storage", traceback=False)
+
+        executed = False
+        if command := self._arguments.command:
+            await self._exec(command)
+            executed = True
+
+        if not self._arguments.debug:
+            modify_handler("storage", traceback=True)
+
+        return executed

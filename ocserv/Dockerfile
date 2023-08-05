@@ -26,7 +26,7 @@ COPY --chmod=550 *.sh /usr/local/sbin/
 COPY --from=ocserv /usr/local/bin/ /usr/local/bin/
 COPY --from=ocserv /usr/local/sbin/ocserv* /usr/local/sbin/
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends iptables iproute2 \
+    apt-get install -y --no-install-recommends iptables iproute2 socat \
         gnutls-bin libgnutls28-dev libev-dev libseccomp-dev \
         libreadline-dev libnl-route-3-dev && \
     apt-get clean; \
@@ -104,9 +104,40 @@ CMD \
         sleep 3600; \
     done & \
 
+    # Starting the message broker
+    socket=/tmp/ocserv/message-broker.sock; \
+    socat -b16384 -t999 \
+        UNIX-LISTEN:$socket,fork,reuseaddr,unlink-early,user=ocserv,group=ocserv,mode=766 \
+        EXEC:/usr/local/sbin/message-broker.sh & \
+
     # Creating a TUN device
     mkdir -p /dev/net; \
     mknod /dev/net/tun c 10 200; \
     chmod 600 /dev/net/tun; \
+
+    # Waiting for the users to be generated
+    timeout=5; \
+    current_time=$(date '+%s'); \
+    while (( $timeout > 0 )); do \
+        if [ -s /tmp/bypasshub/last-generate ] && \
+            (( $(< /tmp/bypasshub/last-generate) >= $current_time )); then \
+            break; \
+        fi; \
+
+        (( timeout-- )); \
+        sleep 1; \
+    done; \
+
+    # Injecting the users
+    > /tmp/ocserv/passwd; \
+    readarray -t users < /tmp/bypasshub/users; \
+    if [ ! -z "${users}" ]; then \
+        for user in "${users[@]}"; do \
+            user=($user); \
+            ocpasswd --passwd /tmp/ocserv/passwd \
+                ${user[0]} <<< ${user[1]}$'\n'${user[1]}; \
+        done; \
+        unset users user; \
+    fi; \
 
     ocserv --foreground --config /tmp/ocserv/ocserv.conf

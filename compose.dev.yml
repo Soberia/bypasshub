@@ -1,0 +1,5 @@
+services:
+    bypasshub:
+        entrypoint: ["sleep", "infinity"]
+        volumes:
+            - ./bypasshub:/usr/local/src/bypasshub
