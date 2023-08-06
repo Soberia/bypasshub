@@ -145,7 +145,7 @@ Get the [`Xray-core`](https://github.com/XTLS/Xray-core) and [`OpenConnect`](htt
 - For `Xray-core`, in your client, add a subscription with the following URL:
 
     ```
-    https://$DOMAIN/subscription?uuid=PASSWORD
+    https://$DOMAIN:$TLS_PORT/subscription?uuid=PASSWORD
     ```
 
     <details>
