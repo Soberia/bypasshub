@@ -260,13 +260,13 @@ For `OpenConnect`, you can place [user-based configuration](http://ocserv.gitlab
 For [securing the exchanged data](https://en.wikipedia.org/wiki/Domain_Name_System_Security_Extensions) for your authoritative DNS zone, you can enable the [`ENABLE_DNSSEC`](#ENABLE_DNSSEC) parameter ([`ENABLE_AUTHORITATIVE_ZONE`](#ENABLE_AUTHORITATIVE_ZONE) also should be enabled) and restart the container to generate the keys:
 
 ```bash
-docker restart bypasshub-bind-1
+docker compose restart bind --no-deps
 ```
 
 and get the keys by running the following command and setting them on your parent domain through your domain registrar:
 
 ```bash
-docker exec bypasshub-bind-1 \
+docker compose exec bind \
     bash -c "dig @localhost dnskey $DOMAIN | dnssec-dsfromkey -Af - $DOMAIN"
 ```
 
@@ -277,8 +277,8 @@ Enable the [`ENABLE_IPV6`](#ENABLE_IPV6) parameter and you can either specify yo
 You may also need the following firewall rules in the `FORWARD` chain: (they won't be permanent)
 
 ```bash
-ip6tables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT # Only if not already exist
-ip6tables -A FORWARD -p ipv6-icmp -j ACCEPT # Only if not already exist
+ip6tables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT # Only needed if doesn't already exist
+ip6tables -A FORWARD -p ipv6-icmp -j ACCEPT # Only needed if doesn't already exist
 ip6tables -A FORWARD -d $IPV6_SUBNET -j ACCEPT
 ip6tables -A FORWARD -s $IPV6_SUBNET -o eth0 -j ACCEPT
 ```
@@ -289,10 +289,10 @@ The persistence of the logs can be controlled by the [`NGINX_LOG_PURGE_INTERVAL`
 You can see the logs by running the following commands:
 
 ```bash
-docker exec bypasshub-nginx-1 cat /tmp/nginx/log/access.log # Clients access log
-docker exec bypasshub-nginx-1 cat /tmp/nginx/log/static.log # Dummy website access log
-docker exec bypasshub-nginx-1 cat /tmp/nginx/log/api.log # API access log
-docker exec bypasshub-nginx-1 cat /tmp/nginx/log/error.log
+docker compose exec nginx cat /tmp/nginx/log/access.log # Clients access log
+docker compose exec nginx cat /tmp/nginx/log/static.log # Dummy website access log
+docker compose exec nginx cat /tmp/nginx/log/api.log # API access log
+docker compose exec nginx cat /tmp/nginx/log/error.log
 ```
 
 ## Update Containers
