@@ -142,10 +142,10 @@ See the [user management](bypasshub/README.md) page.
 
 Get the [`Xray-core`](https://github.com/XTLS/Xray-core) and [`OpenConnect`](https://gitlab.com/openconnect/openconnect) clients for your devices.
 
-- For `Xray-core`, in your client, add a subscription with the following URL:
+- For `Xray-core`, in your client, add a subscription with the following URL with user's credentials:
 
     ```
-    https://$DOMAIN:$TLS_PORT/subscription?uuid=PASSWORD
+    https://$DOMAIN:$TLS_PORT/subscription?username=USERNAME&uuid=PASSWORD
     ```
 
     <details>
