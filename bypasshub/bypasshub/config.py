@@ -35,5 +35,12 @@ config["environment"] = {
 for key in ("enable_xray_cdn", "enable_xray_subscription"):
     config["environment"][key] = bool(config["environment"][key])
 
+config["api"]["enable"] = bool(environ.get("ENABLE_API"))
+config["api"]["ui"] = bool(environ.get("ENABLE_API_UI"))
+
+if api_key := environ.get("API_KEY"):
+    config["api"]["key"] = api_key
+config["api"]["key"] = config["api"]["key"].encode()
+
 if not (temp_path := Path(config["main"]["temp_path"])).exists():
     temp_path.mkdir(parents=True, exist_ok=True)

@@ -30,6 +30,13 @@ docker compose exec bypasshub bypasshub plan \
   USERNAME
 ```
 
+# 🌩️ API
+
+To use the RESTful API to manage the users, enable the [`ENABLE_API`](../README.md#ENABLE_API) and [`ENABLE_API_UI`](../README.md#ENABLE_API_UI) parameters and set the API secret key with [`API_KEY`](../README.md#API_KEY) parameter. Then, you can access the API endpoints documentations on the browser with `https://$DOMAiN:$TLS_PORT/api?api-key=$API_KEY` URL. It's possible to send the request directly from the browser, however, if you want to use something like `cURL` or send the requests programatically, you can disable the [`ENABLE_API_UI`](../README.md#ENABLE_API_UI) parameter. The secret key also can be provided as a header with `X-API-Key` name or as mentioned with `api-key` query parameter.
+
+> **Note**  
+> HTTP 404 error will be returned as response for the authentication failures.
+
 # 🔨 Development
 
 The development environment is leveraged by [VSCode's Dev Containers](https://code.visualstudio.com/docs/devcontainers/containers).

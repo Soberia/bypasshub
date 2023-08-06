@@ -89,7 +89,7 @@ CMD \
             sleep_time=$NGINX_LOG_PURGE_INTERVAL; \
             current_time=$(date '+%s'); \
             if (( $current_time >= $due_date )); then \
-                echo -n | tee /tmp/nginx/log/{access,error,static}.log >/dev/null; \
+                echo -n | tee /tmp/nginx/log/{access,error,static,api}.log >/dev/null; \
                 kill -USR1 $(cat /tmp/nginx/nginx.pid); \
                 last_purge=$current_time; \
                 echo $current_time > /tmp/nginx/log/last-purge; \

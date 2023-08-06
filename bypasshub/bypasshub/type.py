@@ -35,6 +35,13 @@ class _ConfigDatabase(TypedDict):
     path: str
 
 
+class _ConfigApi(TypedDict):
+    graceful_timeout: int
+    key: bytes
+    ui_icon: str
+    socket_path: str
+
+
 class _ConfigEnvironment(TypedDict):
     domain: str
     enable_xray_cdn: bool
@@ -49,6 +56,7 @@ class Config(TypedDict):
     main: _ConfigMain
     log: _ConfigLog
     database: _ConfigDatabase
+    api: _ConfigApi
     environment: _ConfigEnvironment
 
 

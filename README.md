@@ -291,6 +291,7 @@ You can see the logs by running the following commands:
 ```bash
 docker exec bypasshub-nginx-1 cat /tmp/nginx/log/access.log # Clients access log
 docker exec bypasshub-nginx-1 cat /tmp/nginx/log/static.log # Dummy website access log
+docker exec bypasshub-nginx-1 cat /tmp/nginx/log/api.log # API access log
 docker exec bypasshub-nginx-1 cat /tmp/nginx/log/error.log
 ```
 
@@ -362,3 +363,6 @@ Variable                                                              | Type   |
 <span id="ENABLE_XRAY_CDN">ENABLE_XRAY_CDN</span>                     | switch | Enables the `Xray-core` proxy server to work behind the CDN.
 <span id="ENABLE_XRAY_SUBSCRIPTION">ENABLE_XRAY_SUBSCRIPTION</span>   | switch | Enables the `Xray-core` clients to access the configs by a subscription URL. Only authorized users have access to the subscription by providing their credentials.
 <span id="NGINX_LOG_PURGE_INTERVAL">NGINX_LOG_PURGE_INTERVAL</span>   | number | The interval in seconds that `NGINX` logs would be cleared. The value of `0`, keeps the logs forever.
+<span id="ENABLE_API">ENABLE_API</span>                               | switch | Enables the [user management API](bypasshub/README.md).
+<span id="ENABLE_API_UI">ENABLE_API_UI</span>                         | switch | Enables the web based UI for interacting with the API.
+<span id="API_KEY">API_KEY</span>                                     | string | The secret key for authenticating the API requests.

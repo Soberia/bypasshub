@@ -54,3 +54,11 @@ path = "/tmp/bypasshub/log"
 # Specify Zero to disable auto backup.
 backup_interval = 86400 # Second
 path = "/var/lib/bypasshub/index.db"
+
+[api]
+# The time that server should wait for requests to be
+# handled on server's shutdown.
+graceful_timeout = 15 # Second
+key = ""
+ui_icon = "https://github.com/Soberia/soberia.ir/raw/main/public/favicon.svg"
+socket_path = "/tmp/bypasshub/uvicorn.sock"
