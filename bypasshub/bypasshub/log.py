@@ -32,10 +32,6 @@ class _StorageFormatter(logging.Formatter):
     def formatException(self, *args) -> str:
         return super().formatException(*args) if self._traceback else ""
 
-    def formatMessage(self, *args) -> str:
-        message = super().formatMessage(*args)
-        return message if self._traceback else f"{message} (TRACEBACK DISABLED)"
-
 
 class _ConsoleFormatter(ColourizedFormatter):
     """Custom log formatter to control the traceback."""
