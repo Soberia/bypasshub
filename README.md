@@ -297,11 +297,25 @@ docker compose exec nginx cat /tmp/nginx/log/error.log
 
 ## Update Containers
 
-You can update all the software to the latest stable version with:
+Stop and remove the current containers:
 
 ```bash
-docker compose down --rmi all && \
-    docker compose build --no-cache && \
+docker compose down --rmi all
+```
+
+Get the latest source:
+
+```bash
+git stash && \
+    git pull && \
+    git checkout stash -- .env nginx/static/index.html && \
+    git stash drop
+```
+
+then rebuild the containers:
+
+```bash
+docker compose build --no-cache && \
     docker compose up -d
 ```
 
