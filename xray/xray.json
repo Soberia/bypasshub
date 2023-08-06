@@ -15,7 +15,7 @@
   "policy": {
     "levels": {
       "0": {
-        "connIdle": 3600,
+        "connIdle": 300,
         "bufferSize": 512,
         "statsUserUplink": true,
         "statsUserDownlink": true
