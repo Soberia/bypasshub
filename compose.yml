@@ -92,7 +92,7 @@ services:
             - temp:/tmp
         networks:
             general:
-                ipv4_address: 192.168.100.2
+                ipv4_address: 192.168.100.5
                 ipv6_address: $NGINX_IPV6
         cap_add:
             - NET_ADMIN # for iptables
@@ -123,12 +123,10 @@ services:
             - temp:/tmp
         networks:
             general:
-                ipv4_address: 192.168.100.3
+                ipv4_address: 192.168.100.6
                 ipv6_address: $BIND_IPV6
         cap_add:
             - NET_ADMIN # for iptables
-        depends_on:
-            - nginx
         profiles:
             - default
             - certbot
@@ -143,7 +141,7 @@ services:
             ENABLE_IPV6: $ENABLE_IPV6
             IPV6_SUBNET: $IPV6_SUBNET
             PUBLIC_IPV4: $PUBLIC_IPV4
-            NGINX_IPV4: 192.168.100.2
+            NGINX_IPV4: 192.168.100.5
             NGINX_IPV6: $NGINX_IPV6
             COMPOSE_PROFILES: ${COMPOSE_PROFILES:?}
         <<: *common
@@ -154,7 +152,7 @@ services:
             - ./certbot/letsencrypt:/etc/letsencrypt
         networks:
             general:
-                ipv4_address: 192.168.100.2
+                ipv4_address: 192.168.100.5
                 ipv6_address: $NGINX_IPV6
         ports:
             - 80:80
@@ -196,7 +194,7 @@ services:
             TLS_PORT: $TLS_PORT
             IPV6_SUBNET: $IPV6_SUBNET
             NGINX_IPV6: $NGINX_IPV6
-            BIND_IPV4: 192.168.100.3
+            BIND_IPV4: 192.168.100.6
             BIND_IPV6: $BIND_IPV6
         <<: *common
 
@@ -234,7 +232,7 @@ services:
             OCSERV_IPV6_SUBNET: $OCSERV_IPV6_SUBNET
             OCSERV_CLIENTS_IPV6_CIDR: $OCSERV_CLIENTS_IPV6_CIDR
             NGINX_IPV6: $NGINX_IPV6
-            BIND_IPV4: 192.168.100.3
+            BIND_IPV4: 192.168.100.6
             BIND_IPV6: $BIND_IPV6
         restart: always
         <<: [*logs, *ulimits]
