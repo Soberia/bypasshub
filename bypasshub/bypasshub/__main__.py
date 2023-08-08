@@ -1,12 +1,12 @@
 import asyncio
 from typing import NoReturn
 
-from bypasshub.log import Process
+import bypasshub.log  # pyright: ignore
 from bypasshub.cli import CLI
 from bypasshub.cleanup import Cleanup
 from bypasshub.monitor import Monitor
 from bypasshub.database import Database
-from bypasshub.utils import create_event_loop
+from bypasshub.utils import Process, create_event_loop
 
 
 async def main() -> None:

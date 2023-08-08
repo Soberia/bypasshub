@@ -1,7 +1,6 @@
 import sys
 import time
 import threading
-import multiprocessing
 import logging
 import logging.config
 import logging.handlers
@@ -40,16 +39,6 @@ class _ConsoleFormatter(ColourizedFormatter):
         return (
             super().formatException(*args) if config["log"]["stdout_traceback"] else ""
         )
-
-
-class Process(multiprocessing.Process):
-    """Custom `multiprocessing.Process` that logs the unhandled exceptions."""
-
-    def run(self) -> None:
-        try:
-            super().run()
-        except:
-            uncaught_exception_handler(*sys.exc_info())
 
 
 def uncaught_exception_handler(*args) -> None:
@@ -185,6 +174,7 @@ if not log_storage:
 # Attaching custom exception handler for logging the
 # uncaught exceptions in the main and derived threads.
 # NOTE: Handler also should be attached on AsyncIO's event
-#       loop on it's creation.
+#       loop on it's creation for handling uncaught exceptions
+#       in asynchronous tasks.
 sys.excepthook = threading.excepthook = uncaught_exception_handler
 logging.config.dictConfig(_config)

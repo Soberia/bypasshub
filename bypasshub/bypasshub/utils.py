@@ -1,4 +1,7 @@
+import sys
 import asyncio
+import inspect
+import multiprocessing
 from typing import Any
 from datetime import datetime, timezone
 from collections.abc import Iterable
@@ -6,6 +9,21 @@ from collections.abc import Iterable
 import uvloop
 
 from .log import uncaught_exception_handler
+
+
+class Process(multiprocessing.Process):
+    """Custom ``multiprocessing.Process`` that logs the unhandled exceptions."""
+
+    def run(self) -> None:
+        try:
+            if self._target:
+                if inspect.iscoroutinefunction(self._target):
+                    with asyncio.Runner(loop_factory=create_event_loop) as runner:
+                        runner.run(self._target(*self._args, **self._kwargs))
+                else:
+                    self._target(*self._args, **self._kwargs)
+        except:
+            uncaught_exception_handler(*sys.exc_info())
 
 
 def create_event_loop() -> uvloop.Loop:

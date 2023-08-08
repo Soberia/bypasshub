@@ -95,7 +95,7 @@ async def lifespan(app: FastAPI) -> None:
     logger.info("The worker process is stopped")
 
 
-def run() -> None:
+async def run() -> None:
     """Runs the server."""
     if not enable_xray_subscription and not enable_api:
         return
@@ -108,7 +108,7 @@ def run() -> None:
         for router in (user, info, database, subscription):
             app_api.include_router(router.router)
 
-    Server(
+    await Server(
         Config(
             app,
             uds=config["api"]["socket_path"],
@@ -121,4 +121,4 @@ def run() -> None:
             server_header=False,
             forwarded_allow_ips="*",
         )
-    ).run()
+    ).serve()
