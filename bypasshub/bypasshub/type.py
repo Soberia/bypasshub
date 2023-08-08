@@ -36,6 +36,8 @@ class _ConfigDatabase(TypedDict):
 
 
 class _ConfigApi(TypedDict):
+    enable: bool
+    ui: bool
     graceful_timeout: int
     key: bytes
     ui_icon: str
