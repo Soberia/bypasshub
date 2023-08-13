@@ -1,5 +1,6 @@
 services:
     bypasshub:
         entrypoint: ["sleep", "infinity"]
+        stop_grace_period: 5s
         volumes:
             - ./bypasshub:/usr/local/src/bypasshub
