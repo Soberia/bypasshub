@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from ..type import Traffic
+from ..types import Traffic
 
 
 class BaseService(ABC):

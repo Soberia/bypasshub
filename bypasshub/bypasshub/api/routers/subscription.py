@@ -9,7 +9,7 @@ from .user import user_not_exist_example
 from ..utils import http_not_found
 from ..dependencies import get_manager, validate_username
 from ...managers import Manager
-from ...type import Credentials, HTTPSerializedError
+from ...types import Credentials, HTTPSerializedError
 from ...errors import InvalidUsernameError, UserNotExistError, InvalidCredentialsError
 
 

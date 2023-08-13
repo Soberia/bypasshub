@@ -16,7 +16,7 @@ from .. import errors
 from ..config import config
 from ..database import Database
 from ..utils import current_time, convert_size
-from ..type import Credentials, Plan, Traffic, Param, Return
+from ..types import Credentials, Plan, Traffic, Param, Return
 
 USERNAME_MIN_LENGTH = 1
 USERNAME_MAX_LENGTH = 64

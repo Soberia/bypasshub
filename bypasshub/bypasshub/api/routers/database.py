@@ -7,7 +7,7 @@ from ..dependencies import get_manager
 from ...managers import Manager
 from ...database import Database
 from ...errors import SynchronizationError
-from ...type import DatabaseSchema, HTTPSerializedError
+from ...types import DatabaseSchema, HTTPSerializedError
 
 router = APIRouter(prefix="/database")
 

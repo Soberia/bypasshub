@@ -2,7 +2,7 @@ from typing import Any
 
 from starlette.status import HTTP_400_BAD_REQUEST, HTTP_500_INTERNAL_SERVER_ERROR
 
-from .type import SerializedError, XrayService, OpenConnectService
+from .types import SerializedError, XrayService, OpenConnectService
 
 SQLITE_CONSTRAINT_PRIMARYKEY = 1555
 SQLITE_CONSTRAINT_UNIQUE = 2067

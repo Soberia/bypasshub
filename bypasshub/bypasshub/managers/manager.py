@@ -11,7 +11,7 @@ from .openconnect import OpenConnect
 from .. import errors
 from ..utils import gather
 from ..config import config
-from ..type import Credentials
+from ..types import Credentials
 
 Service = Xray | OpenConnect
 

@@ -9,7 +9,7 @@ import orjson
 from .base import BaseService
 from .. import errors
 from ..config import config
-from ..type import Traffic, OpenConnectService
+from ..types import Traffic, OpenConnectService
 
 timeout = config["main"]["service_timeout"]
 broker_socket_path = Path(config["main"]["occtl_broker_socket_path"])

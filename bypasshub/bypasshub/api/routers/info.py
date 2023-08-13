@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends
 from .user import user_not_exist_response_model
 from ..dependencies import get_manager, validate_username
 from ...managers import Manager
-from ...type import Credentials, Plan, Traffic
+from ...types import Credentials, Plan, Traffic
 
 router = APIRouter(prefix="/info")
 

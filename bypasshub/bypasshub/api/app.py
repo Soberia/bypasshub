@@ -16,7 +16,7 @@ from .routers import user, info, database, subscription
 from .. import __version__, __homepage__
 from ..config import config
 from ..managers import Manager
-from ..type import HTTPSerializedError
+from ..types import HTTPSerializedError
 from ..errors import BaseError, UnexpectedError
 
 enable_api = config["api"]["enable"]

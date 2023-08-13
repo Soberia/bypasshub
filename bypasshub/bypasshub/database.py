@@ -8,7 +8,7 @@ import orjson
 
 from .config import config
 from .utils import current_time
-from .type import DatabaseSchema
+from .types import DatabaseSchema
 
 backup_interval = config["database"]["backup_interval"]
 database_path = Path(config["database"]["path"])

@@ -16,7 +16,7 @@ from ..dependencies import get_manager, validate_username
 from ... import errors
 from ...managers import Manager
 from ...utils import current_time
-from ...type import HTTPSerializedError, Credentials
+from ...types import HTTPSerializedError, Credentials
 
 router = APIRouter(prefix="/user")
 
