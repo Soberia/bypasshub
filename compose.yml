@@ -224,6 +224,7 @@ services:
             net.ipv6.conf.all.disable_ipv6: 0
         environment:
             DOMAIN: $DOMAIN
+            OCSERV_KEY: $OCSERV_KEY
             TLS_PORT: $TLS_PORT
             OCSERV_DTLS_PORT: $OCSERV_DTLS_PORT
             ENABLE_IPV6: $ENABLE_IPV6

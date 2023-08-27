@@ -203,19 +203,26 @@ Get the [`Xray-core`](https://github.com/XTLS/Xray-core) and [`OpenConnect`](htt
         --server $OCSERV_SNI:$TLS_PORT
     ```
 
-    If you're unable to establish a successful DTLS connection, you can append the `--no-dtls` parameter for a faster initial connection.
+    If you're unable to establish a successful DTLS connection, you can append the `--no-dtls` argument for a faster initial connection.
+
+    > **Note**  
+    > If [`OCSERV_KEY`](#OCSERV_KEY) parameter is set, `--server` argument should contain the secret key as a query string:
+    > 
+    > ```cmd
+    > --server $OCSERV_SNI:$TLS_PORT/?$OCSERV_KEY
+    > ```
 
     <details>
     <summary style="color: cyan">Using IP Address Instead of Domain</summary>
 
-    If your domain already is blocked, change [`OCSERV_SNI`](#OCSERV_SNI) parameter's value to something else (e.g. `bing.com`) and restart the containers and append the following parameters to connect with the IP address instead: (replace [`PUBLIC_IPV4`](#PUBLIC_IPV4) with [`NGINX_IPV6`](#NGINX_IPV6) if you want use IPv6)
+    If your domain already is blocked, change [`OCSERV_SNI`](#OCSERV_SNI) parameter's value to something else (e.g. `bing.com`) and restart the containers and append the following arguments to connect with the IP address instead: (replace [`PUBLIC_IPV4`](#PUBLIC_IPV4) with [`NGINX_IPV6`](#NGINX_IPV6) if you want to use IPv6)
 
     ```cmd
         --sni $OCSERV_SNI ^
         --resolve $OCSERV_SNI:$PUBLIC_IPV4
     ```
 
-    After reconnecting with added parameters, you also need to add the printed fingerprint token as the `--servercert` parameter:
+    After reconnecting with added arguments, you also need to add the printed fingerprint token as the `--servercert` argument:
 
     ```cmd
         --servercert pin-sha256:Q8CaEEFJqy2xyD9+SsAwfMuVH7jz/Rq0r/HXmNkIg9k=
@@ -247,7 +254,7 @@ The TLS-based services like `Xray-core` and `OpenConnect` are camouflaged behind
 By default, for invalid requests (or authentication failures in the case of `Xray-core`) an empty `index.html` template located in `nginx/static` directory will be returned. You should modify it up to the point to represent a good unique indistinguishable fake webpage. If you need to include static assist like `JavaScript`, `CSS` or images, you can place them in the same mentioned directory.
 
 > **Warning**  
-> `OpenConnect` VPN server [can be detected through the exposed SNI](https://gitlab.com/openconnect/ocserv/-/issues/393). You may consider to disable it via [`ENABLE_OCSERV`](#ENABLE_OCSERV) parameter if Layer 3 protocols usability is not your concern, UDP ports are blocked or restricted in your region or [DPI](https://en.wikipedia.org/wiki/Deep_packet_inspection) won't let you establish a DTLS connection. It may be better to use `Xray-core` instead, it performs better on TCP.
+> `OpenConnect` VPN server [can be detected through the exposed SNI](https://gitlab.com/openconnect/ocserv/-/issues/393). It's also recommended to set [`OCSERV_KEY`](#OCSERV_KEY) parameter to hide the server identity.
 
 ## Additional Configurations
 
@@ -377,6 +384,7 @@ Variable                                                              | Type   |
 <span id="ENABLE_XRAY_CDN">ENABLE_XRAY_CDN</span>                     | switch | Enables the `Xray-core` proxy server to work behind the CDN.
 <span id="ENABLE_XRAY_SUBSCRIPTION">ENABLE_XRAY_SUBSCRIPTION</span>   | switch | Enables the `Xray-core` clients to access the configs by a subscription URL. Only authorized users have access to the subscription by providing their credentials.
 <span id="NGINX_LOG_PURGE_INTERVAL">NGINX_LOG_PURGE_INTERVAL</span>   | number | The interval in seconds that `NGINX` logs would be cleared. The value of `0`, keeps the logs forever.
-<span id="ENABLE_API">ENABLE_API</span>                               | switch | Enables the [user management API](bypasshub/README.md).
+<span id="OCSERV_KEY">OCSERV_KEY</span>                               | string | The optional secret key for masquerading the `OpenConnect` VPN server identity.
+<span id="ENABLE_API">ENABLE_API</span>                               | switch | Enables the [user management API](bypasshub/README.md#-api).
 <span id="ENABLE_API_UI">ENABLE_API_UI</span>                         | switch | Enables the web based UI for interacting with the API.
 <span id="API_KEY">API_KEY</span>                                     | string | The secret key for authenticating the API requests.

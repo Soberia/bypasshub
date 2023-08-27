@@ -76,15 +76,19 @@ CMD \
     rm -f /tmp/ocserv/ocserv.sock.* >/dev/null 2>&1; \
     cp /etc/ocserv/ocserv.conf /tmp/ocserv/ocserv.conf; \
 
+    CAMOUFLAGE=$([ -z $OCSERV_KEY ] && echo false || echo true); \
+
     # Injecting the environment variables
     declare -a envs=( \
         'DOMAIN' \
+        'OCSERV_KEY' \
         'OCSERV_DTLS_PORT' \
         'OCSERV_IPV4_SUBNET' \
         'OCSERV_IPV6_SUBNET' \
         'OCSERV_CLIENTS_IPV6_CIDR' \
         'BIND_IPV4' \
         'BIND_IPV6' \
+        'CAMOUFLAGE' \
     ); \
     for env in "${envs[@]}"; do \
         if [[ $env == *"IPV6"* && ( $ENABLE_IPV6 != 'true' || -z ${!env} ) ]]; then \
