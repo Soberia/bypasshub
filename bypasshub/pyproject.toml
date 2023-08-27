@@ -13,10 +13,10 @@ authors = [{ name = "Saber Hayati", email = "SaberHayati@outlook.com" }]
 keywords = ["ocserv", "OpenConnect", "Xray-core", "NGINX", "VPN", "Proxy"]
 urls = { homepage = "https://github.com/Soberia/bypasshub" }
 dependencies = [
-    "orjson~=3.9.2",
+    "orjson~=3.9.5",
     "fastapi~=0.103.0",
-    "grpcio==1.56.2",
-    "grpcio-tools==1.56.2",
+    "grpcio==1.57.0",
+    "grpcio-tools==1.57.0",
     "uvicorn[standard]~=0.23.2"
 ]
 optional-dependencies = { dev = ["black"] }
