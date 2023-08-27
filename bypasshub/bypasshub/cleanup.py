@@ -1,7 +1,9 @@
+import os
 import sys
 import asyncio
 import logging
 import inspect
+import multiprocessing
 from typing import Self
 from signal import Signals, SIGINT, SIGTERM
 from collections.abc import Callable
@@ -22,6 +24,13 @@ class Cleanup:
         if Cleanup.__instance is None:
             Cleanup.__instance = super().__new__(cls)
             Cleanup.__instance._is_cleaning = None
+            Cleanup.__instance._is_main_process = (
+                multiprocessing.current_process().name == "MainProcess"
+            )
+            Cleanup.__instance.log = (
+                # Preventing duplicated logs on subprocesses
+                Cleanup.__instance._is_main_process
+            )
             Cleanup.__instance._listen()
         return Cleanup.__instance
 
@@ -40,10 +49,11 @@ class Cleanup:
                 ).append(callback)
 
             if callbacks or async_callbacks:
-                message = "Waiting for the scheduled tasks to finish"
-                if signal == SIGINT:
-                    message += " (Ctrl+C to skip)"
-                logger.info(message)
+                if self._log:
+                    message = "Waiting for the scheduled tasks to finish"
+                    if signal == SIGINT:
+                        message += " (Ctrl+C to skip)"
+                    logger.info(message)
 
                 if callbacks:
                     for callback in callbacks:
@@ -51,14 +61,20 @@ class Cleanup:
                 if async_callbacks:
                     await asyncio.gather(*[callback() for callback in async_callbacks])
 
-                logger.debug("The scheduled tasks are finished successfully")
+                if self._log:
+                    logger.debug("The scheduled tasks are finished successfully")
 
             self._is_cleaning = False
-            sys.exit(0)
+            if self._is_main_process:
+                sys.exit(os.EX_OK)
+            os._exit(os.EX_OK)
         else:
-            if self._is_cleaning is not False:
+            if self._log and self._is_cleaning is not False:
                 logger.warning("The pending tasks are cancelled")
-            sys.exit(signal)
+
+            if self._is_main_process:
+                sys.exit(signal)
+            os._exit(signal)
 
     def _listen(self) -> None:
         # For an unknown reason, storing the event loop inside a variable and
@@ -86,5 +102,19 @@ class Cleanup:
 
     @property
     def is_cleaning(self) -> bool:
-        """Whether the clean up process is running at the current time."""
+        """The clean up process running status at the current time."""
         return bool(self._is_cleaning)
+
+    @property
+    def log(self) -> bool:
+        """The log status.
+
+        By default, it's equal to `False` if this is not the main process.
+        The value could be modified. However, that leads to duplicated logs
+        if the clean up handler is running in multiple processes.
+        """
+        return self._log
+
+    @log.setter
+    def log(self, value: bool) -> None:
+        self._log = value

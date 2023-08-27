@@ -1,3 +1,4 @@
+import os
 import sys
 import time
 import threading
@@ -64,7 +65,7 @@ def uncaught_exception_handler(*args) -> None:
         # Avoiding traceback on `KeyboardInterrupt` and `SystemExit`.
         # To show the traceback, next line could be uncommented.
         # sys.__excepthook__(exc_type, exc_value, exc_traceback)
-        if isinstance(exc_value, SystemExit) and exc_value.code == 0:
+        if isinstance(exc_value, SystemExit) and exc_value.code == os.EX_OK:
             return
         logger.warning("Application arbitrary killed by the user")
     else:
