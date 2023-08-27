@@ -1,4 +1,4 @@
-ARG VERSION=1.1.7
+ARG VERSION=1.2.1
 
 FROM ubuntu:rolling AS ocserv
 ARG VERSION

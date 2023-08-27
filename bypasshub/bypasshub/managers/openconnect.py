@@ -72,15 +72,6 @@ class OpenConnect(BaseService):
                         raise errors.OpenConnectTimeoutError()
                     elif (exit_code := int(exit_code)) == 0:
                         if output := (await reader.read()):
-                            if command == "show_status":
-                                # `occtl` generates an invalid JSON output.
-                                # See https://gitlab.com/openconnect/ocserv/-/issues/517
-                                #
-                                # TODO: This bug will be fixed in `ocserv` version 1.1.8,
-                                #       There will be no need for this patch anymore.
-                                output = output.replace(
-                                    b'"TLS DB entries":  0', b'"TLS DB entries":  0,'
-                                )
                             return orjson.loads(output)
                     elif exit_code == 3:
                         raise errors.UserExistError()
