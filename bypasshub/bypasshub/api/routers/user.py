@@ -289,24 +289,24 @@ async def update_plan(
     plan: Annotated[
         PlanRequest,
         Body(
-            # BUG: Examples drop list won't show up on docs with `FastAPI` >= v0.100
-            # See https://github.com/tiangolo/fastapi/pull/9866
-            examples=list(
-                {
-                    "10GB traffic for one month": {
-                        "plan_start_date": current_time().isoformat(),
-                        "plan_duration": int(timedelta(days=30).total_seconds()),
-                        "plan_traffic": 1e10,
-                    },
-                    "unlimited traffic for one month": {
-                        "plan_start_date": current_time().isoformat(),
-                        "plan_duration": int(timedelta(days=30).total_seconds()),
-                    },
-                    "10GB traffic for unlimited time": {"plan_traffic": 1e10},
-                    "add 1GB extra traffic": {"plan_extra_traffic": 1e9},
-                    "unlimited traffic and time": {},
-                }.values()
-            ),
+            openapi_examples={
+                "unlimited traffic for one month": {
+                    "value": {
+                        "start-date": current_time().isoformat(),
+                        "duration": int(timedelta(days=30).total_seconds()),
+                    }
+                },
+                "10GB traffic for one month": {
+                    "value": {
+                        "start-date": current_time().isoformat(),
+                        "duration": int(timedelta(days=30).total_seconds()),
+                        "traffic": 1e10,
+                    }
+                },
+                "10GB traffic for unlimited time": {"value": {"traffic": 1e10}},
+                "add 1GB extra traffic": {"value": {"extra-traffic": 1e9}},
+                "unlimited traffic and time": {"value": {}},
+            }
         ),
     ],
     reset_extra_traffic: Annotated[
