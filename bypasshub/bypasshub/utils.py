@@ -1,4 +1,5 @@
 import sys
+import math
 import asyncio
 import inspect
 import multiprocessing
@@ -37,7 +38,14 @@ def create_event_loop() -> uvloop.Loop:
 
 def convert_size(size: int) -> str:
     """Converts the input value in bytes to a bigger unit."""
-    return f"{size / (1 << 20):,.0f}MiB"
+    if size == 0:
+        return "0B"
+
+    unit = int(math.floor(math.log(size, 1024)))
+    return (
+        str(round(size / math.pow(1024, unit), 2))
+        + ("B", "KiB", "MiB", "GiB", "TiB", "PiB")[unit]
+    )
 
 
 def current_time() -> datetime:
