@@ -36,14 +36,14 @@ def create_event_loop() -> uvloop.Loop:
     return loop
 
 
-def convert_size(size: int) -> str:
+def convert_size(size: int, precision: int = 2) -> str:
     """Converts the input value in bytes to a bigger unit."""
     if size == 0:
         return "0B"
 
     unit = int(math.floor(math.log(size, 1024)))
     return (
-        str(round(size / math.pow(1024, unit), 2))
+        str(round(size / math.pow(1024, unit), precision or None))
         + ("B", "KiB", "MiB", "GiB", "TiB", "PiB")[unit]
     )
 
