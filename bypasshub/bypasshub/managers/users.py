@@ -8,7 +8,6 @@ from io import StringIO
 from typing import Self
 from pathlib import Path
 from shutil import copyfileobj
-from operator import itemgetter
 from datetime import datetime, timedelta, timezone
 from collections.abc import Callable
 
@@ -61,6 +60,24 @@ class Users:
     def _is_unlimited_traffic_plan(plan: Plan) -> bool:
         """Whether it is an unlimited traffic plan."""
         return plan["plan_traffic"] is None
+
+    @staticmethod
+    def _is_plan_has_time(plan: Plan) -> bool:
+        """Whether plan still has time left."""
+        return Users._is_unlimited_time_plan(plan) or current_time() < (
+            # plan due date
+            datetime.fromisoformat(plan["plan_start_date"])
+            + timedelta(seconds=plan["plan_duration"])
+        )
+
+    @staticmethod
+    def _is_plan_has_traffic(plan: Plan) -> bool:
+        """Whether plan still has unconsumed traffic."""
+        return (
+            Users._is_unlimited_traffic_plan(plan)
+            or plan["plan_traffic_usage"] < plan["plan_traffic"]
+            or plan["plan_extra_traffic_usage"] < plan["plan_extra_traffic"]
+        )
 
     def _is_exist(self, username: str) -> bool:
         """Whether the user is exist in the database."""
@@ -473,38 +490,28 @@ class Users:
         A plan is considered active when still has time and traffic.
         """
         plan = plan or self.get_plan(username)
-        (
-            plan_start_date,
-            plan_duration,
-            plan_traffic,
-            plan_traffic_usage,
-            plan_extra_traffic,
-            plan_extra_traffic_usage,
-        ) = itemgetter(*plan.keys())(plan)
+        return self._is_plan_has_time(plan) and self._is_plan_has_traffic(plan)
 
-        has_time = self._is_unlimited_time_plan(plan) or current_time() < (
-            # plan due date
-            datetime.fromisoformat(plan_start_date)
-            + timedelta(seconds=plan_duration)
-        )
-        has_traffic = (
-            self._is_unlimited_traffic_plan(plan)
-            or plan_traffic_usage < plan_traffic
-            or plan_extra_traffic_usage < plan_extra_traffic
-        )
+    def has_active_plan_time(self, username: str, *, plan: Plan | None = None) -> bool:
+        """Whether the user has a plan with remained time."""
+        return self._is_plan_has_time(plan or self.get_plan(username))
 
-        return True if has_time and has_traffic else False
+    def has_active_plan_traffic(
+        self, username: str, *, plan: Plan | None = None
+    ) -> bool:
+        """Whether the user has a plan with remained traffic."""
+        return self._is_plan_has_traffic(plan or self.get_plan(username))
 
     def has_unlimited_time_plan(
         self, username: str, *, plan: Plan | None = None
     ) -> bool:
-        """Whether user has an unlimited time plan."""
+        """Whether the user has an unlimited time plan."""
         return self._is_unlimited_time_plan(plan or self.get_plan(username))
 
     def has_unlimited_traffic_plan(
         self, username: str, *, plan: Plan | None = None
     ) -> bool:
-        """Whether user has an unlimited traffic plan."""
+        """Whether the user has an unlimited traffic plan."""
         return self._is_unlimited_traffic_plan(plan or self.get_plan(username))
 
     @_validate_username

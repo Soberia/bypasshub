@@ -103,6 +103,34 @@ async def has_active_plan(
 
 
 @router.get(
+    "/has-active-plan-time",
+    tags=["info"],
+    summary="Whether the user has a plan with remained time",
+    responses=user_not_exist_response_model,
+)
+async def has_active_plan_time(
+    manager: Annotated[Manager, Depends(get_manager)],
+    *,
+    username: Annotated[str, Depends(validate_username)],
+) -> bool:
+    return manager.has_active_plan_time(username)
+
+
+@router.get(
+    "/has-active-plan-traffic",
+    tags=["info"],
+    summary="Whether the user has a plan with remained traffic",
+    responses=user_not_exist_response_model,
+)
+async def has_active_plan_traffic(
+    manager: Annotated[Manager, Depends(get_manager)],
+    *,
+    username: Annotated[str, Depends(validate_username)],
+) -> bool:
+    return manager.has_active_plan_traffic(username)
+
+
+@router.get(
     "/has-unlimited-time",
     tags=["info"],
     summary="Whether the user has an unrestricted time plan",

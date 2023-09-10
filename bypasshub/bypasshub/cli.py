@@ -227,6 +227,16 @@ class CLI:
             ),
         )
         info.add_argument(
+            "--has-active-plan-time",
+            metavar="<USERNAME>",
+            help="Show whether the user has a plan with remained time",
+        )
+        info.add_argument(
+            "--has-active-plan-traffic",
+            metavar="<USERNAME>",
+            help="Show whether the user has a plan with remained traffic",
+        )
+        info.add_argument(
             "--has-unlimited-time",
             metavar="<USERNAME>",
             help="Show whether the user has an unrestricted time plan",
@@ -366,6 +376,10 @@ class CLI:
                             print(manager.is_exist(username))
                         elif username := arguments.has_active_plan:
                             print(manager.has_active_plan(username))
+                        elif username := arguments.has_active_plan_time:
+                            print(manager.has_active_plan_time(username))
+                        elif username := arguments.has_active_plan_traffic:
+                            print(manager.has_active_plan_traffic(username))
                         elif username := arguments.has_unlimited_time:
                             print(manager.has_unlimited_time_plan(username))
                         elif username := arguments.has_unlimited_traffic:
