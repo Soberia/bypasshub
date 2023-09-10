@@ -1,4 +1,3 @@
-import asyncio
 import logging
 from typing import Self
 from enum import StrEnum
@@ -14,8 +13,6 @@ from ..config import config
 from ..types import Credentials
 
 Service = Xray | OpenConnect
-
-TASK_GROUP_MESSAGE = "User Synchronization Task Group"
 
 manage_xray = config["main"]["manage_xray"]
 manage_openconnect = config["main"]["manage_openconnect"]
@@ -47,7 +44,7 @@ class Manager(Users):
         if not self._services:
             raise RuntimeError("No service is enabled for managing")
 
-        self._usernames = {
+        self._users = {
             username: self.has_active_plan(username) for username in self.usernames
         }
 
@@ -106,41 +103,38 @@ class Manager(Users):
         reason: Reason | None = None,
         silent: bool | None = None,
     ) -> None:
-        async with asyncio.TaskGroup() as task_group:
-            for service in self._services:
-                task_group.create_task(
+        if exceptions := (
+            await gather(
+                [
                     self._add_user_by_service(service, username, uuid, reason, silent)
-                )
+                    for service in self._services
+                ]
+            )
+        )[1]:
+            raise ExceptionGroup(errors.SynchronizationError.GROUP_MESSAGE, exceptions)
 
     async def _delete_user(
         self, username: str, reason: Reason | None = None, silent: bool | None = None
     ) -> None:
-        async with asyncio.TaskGroup() as task_group:
-            for service in self._services:
-                task_group.create_task(
+        if exceptions := (
+            await gather(
+                [
                     self._delete_user_by_service(service, username, reason, silent)
-                )
+                    for service in self._services
+                ]
+            )
+        )[1]:
+            raise ExceptionGroup(errors.SynchronizationError.GROUP_MESSAGE, exceptions)
 
     async def _sync(self, *, silent: bool | None = None) -> bool:
         synced = False
         current_usernames = self.usernames
 
-        for username in list(self._usernames):
+        for username in list(self._users):
             if username not in current_usernames:
                 # User is deleted
-                if exceptions := (
-                    await gather(
-                        [
-                            self._delete_user_by_service(
-                                service, username, Reason.SYNCHRONIZATION, silent
-                            )
-                            for service in self._services
-                        ]
-                    )
-                )[1]:
-                    raise ExceptionGroup(TASK_GROUP_MESSAGE, exceptions)
-
-                del self._usernames[username]
+                await self._delete_user(username, Reason.SYNCHRONIZATION, silent)
+                del self._users[username]
                 synced = True
 
         for username in current_usernames:
@@ -148,35 +142,26 @@ class Manager(Users):
             has_active_plan = self.has_active_plan(username)
             try:
                 # User is existed
-                had_active_plan = self._usernames[username]
+                had_active_plan = self._users[username]
                 if had_active_plan:
                     if not has_active_plan:
-                        method = self._delete_user_by_service
+                        method = self._delete_user
                         args = (Reason.EXPIRED_PLAN,)
                 elif has_active_plan:
-                    method = self._add_user_by_service
+                    method = self._add_user
                     args = (self.get_credentials(username)["uuid"], Reason.UPDATED_PLAN)
             except KeyError:
                 # User is added
                 if has_active_plan:
-                    method = self._add_user_by_service
+                    method = self._add_user
                     args = (
                         self.get_credentials(username)["uuid"],
                         Reason.SYNCHRONIZATION,
                     )
 
             if method:
-                if exceptions := (
-                    await gather(
-                        [
-                            method(service, username, *args, silent)
-                            for service in self._services
-                        ]
-                    )
-                )[1]:
-                    raise ExceptionGroup(TASK_GROUP_MESSAGE, exceptions)
-
-                self._usernames[username] = has_active_plan
+                await method(username, *args, silent)
+                self._users[username] = has_active_plan
                 synced = True
 
         if synced:
@@ -348,7 +333,7 @@ class Manager(Users):
                     True,
                 )
         except Exception as error:
-            raise errors.SynchronizationError() from error
+            raise errors.SynchronizationError(cause=error)
 
     async def sync(self) -> bool:
         """Synchronizes the services with the database.
@@ -369,7 +354,7 @@ class Manager(Users):
         try:
             return await self._sync()
         except Exception as error:
-            raise errors.SynchronizationError() from error
+            raise errors.SynchronizationError(cause=error)
 
     async def close(self) -> None:
         """Closes the connections to the services and database."""

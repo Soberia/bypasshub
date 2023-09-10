@@ -1,4 +1,5 @@
 from typing import Any
+from collections.abc import Sequence
 
 from starlette.status import HTTP_400_BAD_REQUEST, HTTP_500_INTERNAL_SERVER_ERROR
 
@@ -66,13 +67,18 @@ class BaseError(Exception):
         return self.message
 
     def _serialize_exception(
-        self, exception: Exception
+        self, exception: Exception, _group: str | None = None
     ) -> SerializedError | list[SerializedError]:
         if isinstance(exception, ExceptionGroup):
-            errors = [self._serialize_exception(exec) for exec in exception.exceptions]
+            group = exception.message
+            errors = [
+                self._serialize_exception(exec, group) for exec in exception.exceptions
+            ]
             return errors[0] if len(errors) == 1 else errors
 
         serialized = {"type": exception.__class__.__name__, "message": str(exception)}
+        if _group:
+            serialized["group"] = _group
         if isinstance(exception, BaseError):
             serialized["code"] = exception.code
             if exception.__cause__:
@@ -87,6 +93,18 @@ class BaseError(Exception):
         """Returns the serializable version of the exception."""
         serialized = self._serialize_exception(self)
         return serialized if type(serialized) is list else [serialized]
+
+    @staticmethod
+    def create_exception_group(
+        message: str, exceptions: Sequence[Exception] | Exception | None
+    ) -> ExceptionGroup | None:
+        """Wraps the given exceptions inside of an `ExceptionGroup`"""
+        if exceptions:
+            if isinstance(exceptions, Exception):
+                if isinstance(exceptions, ExceptionGroup):
+                    return exceptions
+                exceptions = (exceptions,)
+            return ExceptionGroup(message, exceptions)
 
 
 class UnexpectedError(BaseError):
@@ -246,17 +264,17 @@ class OpenConnectTimeoutError(BaseError):
 
 
 class SynchronizationError(BaseError):
-    """Failed to reflect the changes to the related services.
+    """Failed to reflect the changes to the related services."""
 
-    The actual exception that causes the failure should be passed
-    to the `cause` parameter or stored in the `__cause__` attribute
-    (by `raise ... from ...`).
-    """
+    GROUP_MESSAGE = "User Synchronization Task Group"
 
-    def __init__(self, **kwargs) -> None:
+    def __init__(
+        self, *, cause: Sequence[Exception] | Exception | None = None, **kwargs
+    ) -> None:
         super().__init__(
             "Failed to reflect the changes to the related services",
             12,
             HTTP_500_INTERNAL_SERVER_ERROR,
+            cause=self.create_exception_group(self.GROUP_MESSAGE, cause),
             **kwargs,
         )

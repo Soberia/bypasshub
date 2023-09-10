@@ -115,6 +115,7 @@ class OpenConnectService(StrEnum):
 class SerializedError(TypedDict):
     type: str
     message: str
+    group: NotRequired[str]
     code: NotRequired[int]
     cause: NotRequired[list["SerializedError"]]
     payload: NotRequired[Any]
