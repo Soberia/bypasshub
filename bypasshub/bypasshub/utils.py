@@ -9,6 +9,7 @@ from collections.abc import Iterable
 
 import uvloop
 
+from .types import DataUnits
 from .log import uncaught_exception_handler
 
 
@@ -36,15 +37,32 @@ def create_event_loop() -> uvloop.Loop:
     return loop
 
 
-def convert_size(size: int, precision: int = 2) -> str:
-    """Converts the input value in bytes to a bigger unit."""
-    if size == 0:
-        return "0B"
+def convert_size(
+    size: int,
+    precision: int = 2,
+    *,
+    separator: str = "",
+    units: DataUnits | None = None,
+) -> str:
+    """Converts the input value in bytes to a bigger decimal unit prefix.
 
-    unit = int(math.floor(math.log(size, 1024)))
-    return (
-        str(round(size / math.pow(1024, unit), precision or None))
-        + ("B", "KiB", "MiB", "GiB", "TiB", "PiB")[unit]
+    Args:
+        `separator`: The unit separator character.
+
+        `units`: The map of the data unit abbreviations to custom names.
+    """
+    prefixes = ("B", "kB", "MB", "GB", "TB", "PB")
+    if size == 0:
+        return f"0{separator}{units['B'] if units else prefixes[0]}"
+
+    magnitude = int(math.floor(math.log(size, 1000)))
+    unit = prefixes[magnitude]
+    return "".join(
+        (
+            str(round(size / math.pow(1000, magnitude), precision or None)),
+            separator,
+            units[unit] if units else unit,
+        )
     )
 
 

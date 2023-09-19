@@ -123,3 +123,12 @@ class SerializedError(TypedDict):
 
 class HTTPSerializedError(TypedDict):
     details: list[SerializedError]
+
+
+class DataUnits(TypedDict):
+    B: str
+    kB: str
+    MB: str
+    GB: str
+    TB: str
+    PB: str
