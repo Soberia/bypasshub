@@ -182,11 +182,9 @@ class Users:
                 When cannot create the user due to overlapped UUIDs.
                 It's very unlikely this exception ever rises on collisions.
         """
-        max_users = config["main"]["max_users"]
-        max_active_users = config["main"]["max_active_users"]
-        if max_users > 0 and self.capacity >= max_users:
+        if self.has_no_capacity():
             raise errors.UsersCapacityError()
-        elif max_active_users > 0 and self.active_capacity >= max_active_users:
+        elif self.has_no_active_capacity():
             raise errors.ActiveUsersCapacityError()
 
         with self._database:
@@ -513,6 +511,19 @@ class Users:
     ) -> bool:
         """Whether the user has an unlimited traffic plan."""
         return self._is_unlimited_traffic_plan(plan or self.get_plan(username))
+
+    def has_no_capacity(self) -> bool:
+        """Whether the count of all the users is bigger than the capacity limit."""
+        max_users = config["main"]["max_users"]
+        return max_users > 0 and self.capacity >= max_users
+
+    def has_no_active_capacity(self) -> bool:
+        """
+        Whether the count of all the users that have
+        an active plan is bigger than the capacity limit.
+        """
+        max_active_users = config["main"]["max_active_users"]
+        return max_active_users > 0 and self.active_capacity >= max_active_users
 
     @_validate_username
     def get_total_traffic(self, username: str) -> Traffic:

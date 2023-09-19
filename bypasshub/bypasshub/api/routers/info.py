@@ -156,3 +156,26 @@ async def has_unlimited_traffic(
     username: Annotated[str, Depends(validate_username)],
 ) -> bool:
     return manager.has_unlimited_traffic_plan(username)
+
+
+@router.get(
+    "/has-no-capacity",
+    tags=["info"],
+    summary="Whether the count of all the users is bigger than the capacity limit",
+)
+async def has_no_capacity(manager: Annotated[Manager, Depends(get_manager)]) -> bool:
+    return manager.has_no_capacity()
+
+
+@router.get(
+    "/has-no-active-capacity",
+    tags=["info"],
+    summary=(
+        "Whether the count of all the users that have"
+        " an active plan is bigger than the capacity limit"
+    ),
+)
+async def has_no_active_capacity(
+    manager: Annotated[Manager, Depends(get_manager)]
+) -> bool:
+    return manager.has_no_active_capacity()
