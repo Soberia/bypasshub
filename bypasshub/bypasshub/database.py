@@ -50,10 +50,10 @@ class Database:
     def _initiate(self) -> None:
         """Creates the database and its required tables."""
         self.connection.execute("PRAGMA journal_mode=WAL")
+        self.connection.execute("PRAGMA foreign_keys=ON")
         self.connection.executescript(
             """
             BEGIN;
-            PRAGMA foreign_keys=ON;
             CREATE TABLE IF NOT EXISTS users (
                 username VARCHAR(64),
                 uuid TEXT UNIQUE,
