@@ -60,7 +60,7 @@ CMD \
     ip6tables -A INPUT -i lo -j ACCEPT; \
     ip6tables -A INPUT -i eth0 -p ipv6-icmp -j ACCEPT; \
     if [[ $ENABLE_IPV6 == 'true' && ! -z $IPV6_SUBNET ]] && \
-        [ ! -z $OCSERV_IPV6_SUBNET && ! -z $BIND_IPV6 && ! -z $NGINX_IPV6 ]; then \
+        [[ ! -z $OCSERV_IPV6_SUBNET && ! -z $BIND_IPV6 && ! -z $NGINX_IPV6 ]]; then \
         ip6tables -A INPUT -i eth0 -s $IPV6_SUBNET -p tcp --dport 443 -j ACCEPT; \
         ip6tables -A INPUT -i eth0 -s $IPV6_SUBNET -p udp --dport $OCSERV_DTLS_PORT -j ACCEPT; \
         ip6tables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT; \
