@@ -69,7 +69,7 @@ class Database:
                 PRIMARY KEY (username)
             );
             CREATE TABLE IF NOT EXISTS history (
-                id INTEGER UNIQUE,
+                id INTEGER,
                 date TEXT,
                 username VARCHAR(64),
                 plan_start_date TEXT,

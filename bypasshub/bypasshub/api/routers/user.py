@@ -239,11 +239,6 @@ async def delete(
                 "application/json": {
                     "examples": {
                         **user_not_exist_example,
-                        "plan ID already exists": {
-                            "value": {
-                                "details": [errors.DuplicatedPlanIDError(0).serialize()]
-                            },
-                        },
                         "set extra traffic limit while plan has no traffic limit": {
                             "value": {
                                 "details": [errors.NoTrafficLimitError().serialize()]
@@ -281,8 +276,8 @@ async def update_plan(
         int | None,
         Query(
             description=(
-                "The unique identifier related to this plan update"
-                " that would be stored in the database plan history table."
+                "The identifier related to this plan update that would be"
+                " stored in the database plan history table."
             )
         ),
     ] = None,

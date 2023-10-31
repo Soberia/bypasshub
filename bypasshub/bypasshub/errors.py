@@ -214,18 +214,6 @@ class ActiveUsersCapacityError(UsersCapacityError):
         self.code = 7
 
 
-class DuplicatedPlanIDError(BaseError):
-    """Cannot update the plan due to ID already exists."""
-
-    def __init__(self, id: int, **kwargs) -> None:
-        super().__init__(
-            f"Cannot update the plan due to ID '{id}' already exists",
-            8,
-            HTTP_400_BAD_REQUEST,
-            **kwargs,
-        )
-
-
 class NoTrafficLimitError(BaseError):
     """Cannot add extra traffic for the user with unlimited traffic plan."""
 

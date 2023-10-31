@@ -288,8 +288,8 @@ class Users:
 
         Args:
             `id`:
-                The unique identifier related to this plan update
-                that would be stored in the database plan history table.
+                The identifier related to this plan update that would be
+                stored in the database plan history table.
             `start_date`:
                 The plan start date in ISO 8601 format if provided value is `str`
                 or UNIX timestamp if provided value is a number.
@@ -297,12 +297,12 @@ class Users:
                 `ValueError` will be raised if the `duration` parameter is not
                 specified.
             `duration`:
-                The Plan duration in seconds.
+                The plan duration in seconds.
                 `ValueError` will be raised if value is not a positive integer
                 or the `start_date` parameter is not specified.
             `traffic`:
                 The plan traffic limit in bytes.
-                If omitted, no time restriction will be applied.
+                If omitted, no traffic restriction will be applied.
                 `ValueError` will be raised if value is not a positive integer.
             `preserve_traffic_usage`:
                 If `True` provided, recorded traffic usage will not reset
@@ -311,9 +311,6 @@ class Users:
         Raises:
             ``errors.UserNotExistError``:
                 When the specified user does not exist.
-
-            ``errors.DuplicatedPlanIDError``:
-                When cannot update the plan due to provided `id` already exists.
         """
         if start_date is not None:
             if (start_date_type := type(start_date)) is not datetime:
@@ -355,26 +352,21 @@ class Users:
         )
 
         with self._database:
-            try:
-                self._database.execute(
-                    """
-                    INSERT INTO history (
-                        id,
-                        date,
-                        username,
-                        plan_start_date,
-                        plan_duration,
-                        plan_traffic
-                    )
-                    VALUES
-                        (?, ?, ?, ?, ?, ?)
-                    """,
-                    (id, current_time().isoformat(), username) + values[:-2],
+            self._database.execute(
+                """
+                INSERT INTO history (
+                    id,
+                    date,
+                    username,
+                    plan_start_date,
+                    plan_duration,
+                    plan_traffic
                 )
-            except sqlite3.IntegrityError as error:
-                if error.sqlite_errorcode == errors.SQLITE_CONSTRAINT_UNIQUE:
-                    raise errors.DuplicatedPlanIDError(id)
-                raise
+                VALUES
+                    (?, ?, ?, ?, ?, ?)
+                """,
+                (id, current_time().isoformat(), username) + values[:-2],
+            )
 
             self._database.execute(
                 """
@@ -413,8 +405,8 @@ class Users:
 
         Args:
             `id`:
-                The unique identifier related to this plan update
-                that would be stored in the database plan history table.
+                The identifier related to this plan update that would be
+                stored in the database plan history table.
             `extra_traffic`:
                 The plan extra traffic limit in bytes.
                 If user's plan traffic limit is reached, this value will
@@ -427,9 +419,6 @@ class Users:
 
             ``errors.NoTrafficLimitError``:
                 When user's plan has no traffic limit.
-
-            ``errors.DuplicatedPlanIDError``:
-                When cannot update the plan due to provided `id` already exists.
         """
         if append := extra_traffic is not None:
             if extra_traffic <= 0:
@@ -443,24 +432,19 @@ class Users:
             raise errors.UserNotExistError(username)
 
         with self._database:
-            try:
-                self._database.execute(
-                    """
-                    INSERT INTO history (
-                        id,
-                        date,
-                        username,
-                        plan_extra_traffic
-                    )
-                    VALUES
-                        (?, ?, ?, ?)
-                    """,
-                    (id, current_time().isoformat(), username, extra_traffic),
+            self._database.execute(
+                """
+                INSERT INTO history (
+                    id,
+                    date,
+                    username,
+                    plan_extra_traffic
                 )
-            except sqlite3.IntegrityError as error:
-                if error.sqlite_errorcode == errors.SQLITE_CONSTRAINT_UNIQUE:
-                    raise errors.DuplicatedPlanIDError(id)
-                raise
+                VALUES
+                    (?, ?, ?, ?)
+                """,
+                (id, current_time().isoformat(), username, extra_traffic),
+            )
 
             self._database.execute(
                 f"""

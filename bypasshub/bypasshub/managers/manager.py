@@ -266,21 +266,23 @@ class Manager(Users):
         reset_extra_traffic: bool | None = None,
         preserve_traffic_usage: bool | None = None,
     ) -> None:
-        """Updates the user's plan on the services and database.
+        """
+        Updates the user's plan on the database
+        and reflects the changes to the services.
 
         Args:
             `id`:
-                The unique identifier related to this plan update
-                that would be stored in the database plan history table.
+                The identifier related to this plan update that would be
+                stored in the database plan history table.
             `start_date`:
                 The plan start date in ISO 8601 format if provided value is `str`
                 or UNIX timestamp if provided value is a number.
                 If omitted, no time restriction will be applied.
             `duration`:
-                The Plan duration in seconds.
+                The plan duration in seconds.
             `traffic`:
                 The plan traffic limit in bytes.
-                If omitted, no time restriction will be applied.
+                If omitted, no traffic restriction will be applied.
             `extra_traffic`:
                 The plan extra traffic limit in bytes.
                 If user's plan traffic limit is reached, this value will
