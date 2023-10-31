@@ -327,11 +327,10 @@ class Users:
         elif duration is not None:
             raise ValueError(f"The 'start_date' parameter must be specified")
 
-        if type(duration) is int:
-            if duration <= 0:
-                raise ValueError(f"The 'duration' parameter should be grater than zero")
-        elif type(duration) is timedelta:
+        if type(duration) is timedelta:
             duration = int(duration.total_seconds())  # ignoring milliseconds
+        if type(duration) is int and duration <= 0:
+            raise ValueError(f"The 'duration' parameter should be grater than zero")
 
         if traffic is not None:
             if traffic <= 0:
