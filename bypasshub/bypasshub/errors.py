@@ -3,7 +3,8 @@ from collections.abc import Sequence
 
 from starlette.status import HTTP_400_BAD_REQUEST, HTTP_500_INTERNAL_SERVER_ERROR
 
-from .types import SerializedError, XrayService, OpenConnectService
+from .types import SerializedError
+from .constants import XrayService, OpenConnectService
 
 SQLITE_CONSTRAINT_PRIMARYKEY = 1555
 SQLITE_CONSTRAINT_UNIQUE = 2067

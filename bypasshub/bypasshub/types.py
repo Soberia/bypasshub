@@ -1,4 +1,3 @@
-from enum import StrEnum
 from typing import ParamSpec, TypeVar, TypedDict, NotRequired, Any
 from typing_extensions import TypedDict  # TODO: Should be removed in Python 3.12
 
@@ -100,16 +99,6 @@ class DatabaseSchema(TypedDict):
 class Traffic(TypedDict):
     uplink: int
     downlink: int
-
-
-class XrayService(StrEnum):
-    NAME = "xray"
-    ALIAS = "Xray-core"
-
-
-class OpenConnectService(StrEnum):
-    NAME = "ocserv"
-    ALIAS = "OpenConnect"
 
 
 class SerializedError(TypedDict):

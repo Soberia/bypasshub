@@ -8,8 +8,9 @@ import orjson
 
 from .base import BaseService
 from .. import errors
+from ..types import Traffic
 from ..config import config
-from ..types import Traffic, OpenConnectService
+from ..constants import OpenConnectService
 
 timeout = config["main"]["service_timeout"]
 broker_socket_path = Path(config["main"]["occtl_broker_socket_path"])

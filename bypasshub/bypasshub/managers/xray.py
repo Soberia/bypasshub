@@ -23,7 +23,8 @@ from xray_rpc.app.proxyman.command.command_pb2 import (
 from .base import BaseService
 from .. import errors
 from ..config import config
-from ..types import Param, Return, Traffic, XrayService
+from ..constants import XrayService
+from ..types import Param, Return, Traffic
 
 timeout = config["main"]["service_timeout"]
 domain = config["environment"]["domain"]

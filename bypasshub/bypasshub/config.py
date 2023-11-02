@@ -2,7 +2,8 @@ import tomllib
 from os import environ
 from pathlib import Path
 
-from .types import Config, XrayService, OpenConnectService
+from .types import Config
+from .constants import XrayService, OpenConnectService
 
 config: Config = tomllib.loads(
     (
