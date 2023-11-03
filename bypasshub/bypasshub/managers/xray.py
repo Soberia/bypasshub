@@ -158,7 +158,7 @@ class Xray(BaseService):
         stats = {}
         for stat in (
             await self._stats_stub.QueryStats(
-                QueryStatsRequest(pattern=f"user", reset=reset), timeout=self.timeout
+                QueryStatsRequest(pattern="user", reset=reset), timeout=self.timeout
             )
         ).stat:
             sections = stat.name.split(">>>")

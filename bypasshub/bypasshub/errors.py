@@ -152,7 +152,7 @@ class InvalidCredentialsError(BaseError):
 
     def __init__(self, **kwargs) -> None:
         super().__init__(
-            f"User credentials is not valid",
+            "User credentials is not valid",
             2,
             HTTP_400_BAD_REQUEST,
             **kwargs,
@@ -200,7 +200,7 @@ class UsersCapacityError(BaseError):
 
     def __init__(self, **kwargs) -> None:
         super().__init__(
-            f"Cannot create the user due to capacity limit",
+            "Cannot create the user due to capacity limit",
             6,
             HTTP_400_BAD_REQUEST,
             **kwargs,

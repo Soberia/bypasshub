@@ -323,14 +323,14 @@ class Users:
             start_date = start_date.replace(microsecond=0).isoformat()
 
             if duration is None:
-                raise ValueError(f"The 'duration' parameter must be specified")
+                raise ValueError("The 'duration' parameter must be specified")
         elif duration is not None:
-            raise ValueError(f"The 'start_date' parameter must be specified")
+            raise ValueError("The 'start_date' parameter must be specified")
 
         if type(duration) is timedelta:
             duration = int(duration.total_seconds())  # ignoring milliseconds
         if type(duration) is int and duration <= 0:
-            raise ValueError(f"The 'duration' parameter should be grater than zero")
+            raise ValueError("The 'duration' parameter should be grater than zero")
 
         if traffic is not None:
             if traffic <= 0:
@@ -446,7 +446,7 @@ class Users:
             )
 
             self._database.execute(
-                f"""
+                """
                 UPDATE
                     users
                 SET
@@ -461,7 +461,7 @@ class Users:
             )
 
         logger.info(
-            (f"Appended '{convert_size(extra_traffic)}'" if append else f"Reset the")
+            (f"Appended '{convert_size(extra_traffic)}'" if append else "Reset the")
             + f" plan extra traffic for user '{username}'"
         )
 
