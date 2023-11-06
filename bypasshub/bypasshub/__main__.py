@@ -14,7 +14,7 @@ async def main() -> None:
         return
 
     # Delaying the import for faster CLI responses
-    from bypasshub.api import run as api
+    from bypasshub.api.app import run as api
 
     Process(target=api, daemon=True, name="api").start()
 
