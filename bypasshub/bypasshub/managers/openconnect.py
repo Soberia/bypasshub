@@ -55,7 +55,7 @@ class OpenConnect(BaseService):
                         reader, writer = await asyncio.open_unix_connection(
                             broker_socket_path
                         )
-                    except (FileNotFoundError, ConnectionRefusedError):
+                    except (FileNotFoundError, ConnectionRefusedError, BlockingIOError):
                         await asyncio.sleep(0.1)
                     else:
                         break
