@@ -1,5 +1,6 @@
 import logging
-from contextlib import asynccontextmanager
+from contextlib import suppress, asynccontextmanager
+from asyncio.exceptions import CancelledError
 
 from uvicorn import Server, Config
 from fastapi import FastAPI, Request, Depends
@@ -89,7 +90,12 @@ async def lifespan(app: FastAPI) -> None:
     logger.info("The worker process is started")
     app.state.manager = app_api.state.manager = Manager()
 
-    yield
+    # If `SIGINT` signal received before application startup,
+    # `CancelledError` would be raised in here and prevents
+    # the proper application shutdown.
+    # See https://github.com/encode/uvicorn/discussions/1662
+    with suppress(CancelledError):
+        yield
 
     await app.state.manager.close()
     logger.info("The worker process is stopped")
