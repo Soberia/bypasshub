@@ -136,6 +136,14 @@ class CLI:
         user.add_argument("-a", "--add", action="store_true", help="Add a user")
         user.add_argument("-d", "--delete", action="store_true", help="Delete a user")
         user.add_argument(
+            "--force",
+            action="store_true",
+            help=(
+                "Ignore failures to reflect the changes to the services"
+                " and perform the action anyway"
+            ),
+        )
+        user.add_argument(
             "--reset-total-traffic",
             action="store_true",
             help="Reset the user's total traffic consumption",
@@ -319,12 +327,14 @@ class CLI:
                         if arguments.add:
                             (credentials, exceptions) = await gather(
                                 [
-                                    manager.add_user(username)
+                                    manager.add_user(username, force=arguments.force)
                                     for username in arguments.username
                                 ]
                             )
 
                             for exception in exceptions:
+                                if isinstance(exception, errors.SynchronizationError):
+                                    credentials.append(exception.payload)
                                 self._log(exception)
 
                             if credentials:
@@ -342,7 +352,9 @@ class CLI:
                             for exception in (
                                 await gather(
                                     [
-                                        manager.delete_user(username)
+                                        manager.delete_user(
+                                            username, force=arguments.force
+                                        )
                                         for username in arguments.username
                                     ]
                                 )
