@@ -71,6 +71,7 @@ class Database:
             CREATE TABLE IF NOT EXISTS history (
                 id INTEGER,
                 date TEXT,
+                action VARCHAR(64),
                 username VARCHAR(64),
                 plan_start_date TEXT,
                 plan_duration INT, /* in seconds */

@@ -1,6 +1,8 @@
 from typing import ParamSpec, TypeVar, TypedDict, NotRequired, Any
 from typing_extensions import TypedDict  # TODO: Should be removed in Python 3.12
 
+from .constants import PlanUpdateAction
+
 Param = ParamSpec("Param")
 Return = TypeVar("Return")
 
@@ -87,6 +89,7 @@ class User(Credentials, Plan):
 class History(PlanBase):
     id: int | None
     date: str
+    action: PlanUpdateAction
     username: str
     plan_extra_traffic: int | None
 

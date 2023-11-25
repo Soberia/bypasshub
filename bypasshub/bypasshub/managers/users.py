@@ -14,6 +14,7 @@ from collections.abc import Callable
 from .. import errors
 from ..config import config
 from ..database import Database
+from ..constants import PlanUpdateAction
 from ..utils import current_time, convert_time, convert_size
 from ..types import Credentials, Plan, Traffic, Param, Return
 
@@ -350,22 +351,6 @@ class Users:
         with self._database:
             self._database.execute(
                 """
-                INSERT INTO history (
-                    id,
-                    date,
-                    username,
-                    plan_start_date,
-                    plan_duration,
-                    plan_traffic
-                )
-                VALUES
-                    (?, ?, ?, ?, ?, ?)
-                """,
-                (id, current_time().isoformat(), username) + values[:-2],
-            )
-
-            self._database.execute(
-                """
                 UPDATE
                     users
                 SET
@@ -381,6 +366,29 @@ class Users:
                     username = ?
                 """,
                 values,
+            )
+
+            self._database.execute(
+                """
+                INSERT INTO history (
+                    id,
+                    date,
+                    action,
+                    username,
+                    plan_start_date,
+                    plan_duration,
+                    plan_traffic
+                )
+                VALUES
+                    (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    id,
+                    current_time().isoformat(),
+                    PlanUpdateAction.UPDATE_PLAN,
+                    username,
+                    *values[:-2],
+                ),
             )
 
         logger.debug(
@@ -432,20 +440,6 @@ class Users:
         with self._database:
             self._database.execute(
                 """
-                INSERT INTO history (
-                    id,
-                    date,
-                    username,
-                    plan_extra_traffic
-                )
-                VALUES
-                    (?, ?, ?, ?)
-                """,
-                (id, current_time().isoformat(), username, extra_traffic),
-            )
-
-            self._database.execute(
-                """
                 UPDATE
                     users
                 SET
@@ -457,6 +451,27 @@ class Users:
                     username = ?
                 """,
                 (extra_traffic, username),
+            )
+
+            self._database.execute(
+                """
+                INSERT INTO history (
+                    id,
+                    date,
+                    action,
+                    username,
+                    plan_extra_traffic
+                )
+                VALUES
+                    (?, ?, ?, ?, ?)
+                """,
+                (
+                    id,
+                    current_time().isoformat(),
+                    PlanUpdateAction.UPDATE_PLAN_EXTRA_TRAFFIC,
+                    username,
+                    extra_traffic,
+                ),
             )
 
         logger.debug(
