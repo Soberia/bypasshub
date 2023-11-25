@@ -1,12 +1,14 @@
 import asyncio
 import logging
+from time import time
+from enum import Enum
 from typing import Literal
 from collections.abc import Coroutine
 
 from . import errors
-from .utils import gather
 from .config import config
 from .managers import Manager, Xray
+from .utils import gather, convert_time
 from .managers.manager import Reason, Service
 
 TASK_NAME_PREFIX = "monitor"
@@ -16,6 +18,11 @@ monitor_interval = config["main"]["monitor_interval"]
 monitor_passive_steps = config["main"]["monitor_passive_steps"]
 monitor_zombies = config["main"]["monitor_zombies"]
 logger = logging.getLogger(__name__)
+
+
+class ServiceStatus(Enum):
+    DISCONNECTED = 0
+    CONNECTED = 1
 
 
 class Monitor(Manager):
@@ -58,6 +65,10 @@ class Monitor(Manager):
         self._task = None
         self._idle = None
         self._counted_steps = 0
+        self._services_stats = {
+            service.ALIAS: {"status": ServiceStatus.CONNECTED, "time": 0}
+            for service in self._services
+        }
 
     async def _passive_monitor(self) -> None:
         """Periodically synchronizes the services with the database."""
@@ -144,6 +155,9 @@ class Monitor(Manager):
             await asyncio.sleep(self.interval)
             self._idle = False
 
+            interruption_errors = []
+            stats = self._services_stats
+
             try:
                 try:
                     if exceptions := (
@@ -167,7 +181,28 @@ class Monitor(Manager):
                     errors.OpenConnectTimeoutError,
                 ) as error:
                     for exception in error.exceptions:
-                        logger.warning(exception)
+                        name = exception.ALIAS
+                        service = stats[name]
+                        interruption_errors.append(name)
+                        if service["status"] == ServiceStatus.CONNECTED:
+                            service["status"] = ServiceStatus.DISCONNECTED
+                            service["time"] = time()
+                            logger.warning(
+                                f"Communication with '{name}' service is interrupted"
+                            )
+                finally:
+                    for name, service in stats.items():
+                        if (
+                            name not in interruption_errors
+                            and service["status"] == ServiceStatus.DISCONNECTED
+                        ):
+                            service["status"] = ServiceStatus.CONNECTED
+                            logger.info(
+                                (
+                                    "Communication with '{}' service is restored"
+                                    " (was disconnected for ~'{}')"
+                                ).format(name, convert_time(time() - service["time"]))
+                            )
             except ExceptionGroup as error:
                 logger.exception(error)
 

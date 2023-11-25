@@ -121,3 +121,10 @@ class DataUnits(TypedDict):
     GB: str
     TB: str
     PB: str
+
+
+class TimeUnits(TypedDict):
+    s: str
+    m: str
+    h: str
+    d: str

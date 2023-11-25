@@ -189,7 +189,7 @@ class Manager(Users):
             to connect to the services.
 
         Raises:
-            ``ExceptionGroup``:
+            `ExceptionGroup`:
                 When failed to delete the user from the services.
                 This will only be raised if the `force` parameter is not `True`.
             ``errors.SynchronizationError``:
@@ -208,10 +208,16 @@ class Manager(Users):
                 super().delete_user(username)
                 with suppress(Exception):
                     await self._delete_user(username)
+                logger.error(f"Failed to create user '{username}'")
                 raise _error
-            error = errors.SynchronizationError(cause=_error, payload=credentials)
+            error = errors.SynchronizationError(
+                f"Failed to add user '{username}' to the services",
+                cause=_error,
+                payload=credentials,
+            )
+            logger.warning(repr(error))
 
-        logger.info(f"User {username} is created")
+        logger.info(f"User '{username}' is created")
         if error:
             raise error
         return credentials
@@ -230,7 +236,7 @@ class Manager(Users):
                 to indicate the cause of the synchronization problem with services.
 
         Raises:
-            ``ExceptionGroup``:
+            `ExceptionGroup`:
                 When failed to delete the user from the services.
                 This will only be raised if the `force` parameter is not `True`.
             ``errors.SynchronizationError``:
@@ -246,11 +252,15 @@ class Manager(Users):
             await self._delete_user(username)
         except ExceptionGroup as _error:
             if not force:
+                logger.error(f"Failed to delete user '{username}'")
                 raise _error
-            error = errors.SynchronizationError(cause=_error)
+            error = errors.SynchronizationError(
+                f"Failed to delete user '{username}' from the services", cause=_error
+            )
+            logger.warning(repr(error))
 
         super().delete_user(username)
-        logger.info(f"User {username} is deleted")
+        logger.info(f"User '{username}' is deleted")
         if error:
             raise error
 
@@ -324,18 +334,38 @@ class Manager(Users):
             )
         has_active_plan = self.has_active_plan(username)
 
+        error = reflected = None
         try:
             if had_active_plan:
                 if not has_active_plan:
-                    await self._delete_user(username, Reason.EXPIRED_PLAN, True)
+                    await self._delete_user(username, Reason.EXPIRED_PLAN, silent=True)
+                    reflected = True
             elif has_active_plan:
                 await self._add_user(
                     *self.get_credentials(username).values(),
                     Reason.UPDATED_PLAN,
-                    True,
+                    silent=True,
                 )
-        except Exception as error:
-            raise errors.SynchronizationError(cause=error)
+                reflected = True
+        except Exception as _error:
+            error = errors.SynchronizationError(
+                f"Failed to reflect plan update to the services for user '{username}'",
+                cause=_error,
+            )
+            logger.warning(repr(error))
+            raise error
+        finally:
+            logger.info(
+                "Plan is updated for user '{}'{}".format(
+                    username,
+                    (
+                        " and currently no changes are required"
+                        " to be reflected to the services"
+                    )
+                    if not reflected and not error
+                    else "",
+                )
+            )
 
     async def sync(self) -> bool:
         """Synchronizes the services with the database.
@@ -356,7 +386,9 @@ class Manager(Users):
         try:
             return await self._sync()
         except Exception as error:
-            raise errors.SynchronizationError(cause=error)
+            raise errors.SynchronizationError(
+                "Failed to reflect the database changes to the services", cause=error
+            )
 
     async def close(self) -> None:
         """Closes the connections to the services and database."""

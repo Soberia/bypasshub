@@ -56,7 +56,7 @@ class BaseError(Exception):
                 [
                     f"{self.message} due to:\n",
                     *(
-                        f"\t\t\t- {exception}\n"
+                        f"\t- {exception}\n"
                         for exception in (
                             cause.exceptions
                             if isinstance(cause, ExceptionGroup)
@@ -64,7 +64,7 @@ class BaseError(Exception):
                         )
                     ),
                 ]
-            )
+            ).rstrip()
         return self.message
 
     def _serialize_exception(
@@ -231,9 +231,11 @@ class NoTrafficLimitError(BaseError):
 class XrayTimeoutError(BaseError):
     """Failed to communicate with `Xray-core` service."""
 
+    ALIAS = XrayService.ALIAS
+
     def __init__(self, **kwargs) -> None:
         super().__init__(
-            f"Failed to communicate with '{XrayService.ALIAS}' proxy server",
+            f"Failed to communicate with '{self.ALIAS}' proxy server",
             10,
             HTTP_500_INTERNAL_SERVER_ERROR,
             **kwargs,
@@ -243,9 +245,11 @@ class XrayTimeoutError(BaseError):
 class OpenConnectTimeoutError(BaseError):
     """Failed to communicate with `OpenConnect` service."""
 
+    ALIAS = OpenConnectService.ALIAS
+
     def __init__(self, **kwargs) -> None:
         super().__init__(
-            f"Failed to communicate with '{OpenConnectService.ALIAS}' VPN server",
+            f"Failed to communicate with '{self.ALIAS}' VPN server",
             11,
             HTTP_500_INTERNAL_SERVER_ERROR,
             **kwargs,
@@ -258,10 +262,14 @@ class SynchronizationError(BaseError):
     GROUP_MESSAGE = "User Synchronization Task Group"
 
     def __init__(
-        self, *, cause: Sequence[Exception] | Exception | None = None, **kwargs
+        self,
+        message: str | None = None,
+        *,
+        cause: Sequence[Exception] | Exception | None = None,
+        **kwargs,
     ) -> None:
         super().__init__(
-            "Failed to reflect the changes to the related services",
+            message or "Failed to reflect the changes to the related services",
             12,
             HTTP_500_INTERNAL_SERVER_ERROR,
             cause=self.create_exception_group(self.GROUP_MESSAGE, cause),

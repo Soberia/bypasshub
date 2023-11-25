@@ -4,12 +4,12 @@ import asyncio
 import inspect
 import multiprocessing
 from typing import Any
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from collections.abc import Iterable
 
 import uvloop
 
-from .types import DataUnits
+from .types import DataUnits, TimeUnits
 from .log import uncaught_exception_handler
 
 
@@ -44,7 +44,7 @@ def convert_size(
     separator: str = "",
     units: DataUnits | None = None,
 ) -> str:
-    """Converts the input value in bytes to a bigger decimal unit prefix.
+    """Approximately converts the input value in bytes to a bigger decimal unit prefix.
 
     Args:
         `separator`: The unit separator character.
@@ -64,6 +64,32 @@ def convert_size(
             units[unit] if units else unit,
         )
     )
+
+
+def convert_time(
+    time: timedelta | int, *, separator: str = "", units: TimeUnits | None = None
+) -> str:
+    """Approximately converts the input value in seconds to a bigger unit.
+
+    Args:
+        `separator`: The unit separator character.
+
+        `units`: The map of the time unit abbreviations to custom names.
+    """
+    if not isinstance(time, timedelta):
+        time = timedelta(seconds=time)
+    if not units:
+        unit = ("d", "h", "m", "s")
+        units = dict(zip(unit, unit))
+
+    if time.days:
+        return f"{time.days}{separator}{units['d']}"
+    elif (seconds := time.seconds) >= 3600:
+        return f"{int(seconds / 3600)}{separator}{units['h']}"
+    elif seconds >= 60:
+        return f"{int(seconds / 60)}{separator}{units['m']}"
+    else:
+        return f"{seconds}{separator}{units['s']}"
 
 
 def current_time() -> datetime:

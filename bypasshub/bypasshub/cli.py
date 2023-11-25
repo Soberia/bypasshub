@@ -8,6 +8,7 @@ import orjson
 from click import style
 
 from . import __version__
+from . import errors
 from .utils import gather
 from .errors import BaseError
 from .managers import Manager
@@ -288,6 +289,27 @@ class CLI:
             help="Generate and store a database backup (default: %%timestamp%%.bak)",
         )
 
+    def _log(
+        self,
+        exception: Exception,
+        *,
+        traceback: bool | None = None,
+        log_sync: bool | None = None,
+    ) -> None:
+        for error in (
+            exception.exceptions
+            if isinstance(exception, ExceptionGroup)
+            else (exception,)
+        ):
+            if log_sync or not isinstance(
+                error,
+                errors.SynchronizationError,  # already logged
+            ):
+                logger.exception(
+                    repr(error) if isinstance(error, BaseError) else error,
+                    exc_info=error if traceback else None,
+                )
+
     async def _exec(self, command: str) -> None:
         arguments = self._arguments
         async with Manager() as manager:
@@ -303,9 +325,7 @@ class CLI:
                             )
 
                             for exception in exceptions:
-                                if isinstance(exception, ExceptionGroup):
-                                    (exception,) = exception.exceptions
-                                logger.error(exception)
+                                self._log(exception)
 
                             if credentials:
                                 print(
@@ -327,9 +347,7 @@ class CLI:
                                     ]
                                 )
                             )[1]:
-                                if isinstance(exception, ExceptionGroup):
-                                    (exception,) = exception.exceptions
-                                logger.error(exception)
+                                self._log(exception)
                         elif arguments.reset_total_traffic:
                             for username in arguments.username:
                                 manager.reset_total_traffic(username)
@@ -352,11 +370,7 @@ class CLI:
                                 ]
                             )
                         )[1]:
-                            logger.error(
-                                repr(exception)
-                                if isinstance(exception, BaseError)
-                                else exception
-                            )
+                            self._log(exception)
                     case "info":
                         if arguments.users:
                             print(*manager.usernames, sep="\n")
@@ -414,10 +428,13 @@ class CLI:
                             self._info.print_help()
                     case "database":
                         if arguments.sync:
-                            print(
-                                "Services are"
-                                f" {'synced' if (await manager.sync()) else 'in sync'}"
-                            )
+                            try:
+                                print(
+                                    "Services are"
+                                    f" {'synced' if (await manager.sync()) else 'in sync'}"
+                                )
+                            except Exception as error:
+                                self._log(error, log_sync=True)
                         elif arguments.dump:
                             print(
                                 orjson.dumps(
@@ -430,7 +447,7 @@ class CLI:
                         else:
                             self._database.print_help()
             except Exception as error:
-                logger.exception(repr(error) if isinstance(error, BaseError) else error)
+                self._log(error, traceback=True)
                 self._parser.exit(1)
 
     async def _run(self) -> bool:

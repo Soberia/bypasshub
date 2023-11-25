@@ -14,7 +14,7 @@ from collections.abc import Callable
 from .. import errors
 from ..config import config
 from ..database import Database
-from ..utils import current_time, convert_size
+from ..utils import current_time, convert_time, convert_size
 from ..types import Credentials, Plan, Traffic, Param, Return
 
 USERNAME_MIN_LENGTH = 1
@@ -166,18 +166,15 @@ class Users:
         Raises:
             ``errors.UserExistError``:
                 When the specified user already exists.
-
             ``errors.UsersCapacityError``:
                 When cannot create the user due to user capacity limit.
                 This limit can be configured with `max_users`
                 property in the configuration file.
-
             ``errors.ActiveUsersCapacityError``:
                 When cannot create the user due to capacity limit
                 of the maximum users that have an active plan is reached.
                 This limit can be configured with `max_active_users`
                 property in the configuration file.
-
             ``errors.UUIDOverlapError``:
                 When cannot create the user due to overlapped UUIDs.
                 It's very unlikely this exception ever rises on collisions.
@@ -207,7 +204,7 @@ class Users:
                         raise errors.UUIDOverlapError()
                     raise
 
-                logger.debug(f"User '{username}' is created in database")
+                logger.debug(f"User '{username}' is added in database")
                 return {"username": username, "uuid": uuid}
 
     @_validate_username
@@ -386,10 +383,13 @@ class Users:
                 values,
             )
 
-        logger.info(
-            f"Plan is updated for user '{username}'"
-            f""" {f"starting from '{start_date}'" if start_date else 'with unlimited time'} and"""
-            f""" {f"'{convert_size(traffic)}'" if traffic is not None else 'unlimited'} traffic"""
+        logger.debug(
+            "Plan is updated for user '{}' {}with '{}' time and '{}' traffic".format(
+                username,
+                f"starting from '{start_date}' " if start_date else "",
+                convert_time(duration) if duration else "unlimited",
+                convert_size(traffic) if traffic is not None else "unlimited",
+            )
         )
 
     @_validate_username
@@ -415,7 +415,6 @@ class Users:
         Raises:
             ``errors.UserNotExistError``:
                 When the specified user does not exist.
-
             ``errors.NoTrafficLimitError``:
                 When user's plan has no traffic limit.
         """
@@ -460,9 +459,11 @@ class Users:
                 (extra_traffic, username),
             )
 
-        logger.info(
-            (f"Appended '{convert_size(extra_traffic)}'" if append else "Reset the")
-            + f" plan extra traffic for user '{username}'"
+        logger.debug(
+            "{} plan extra traffic for user '{}'".format(
+                f"Appended '{convert_size(extra_traffic)}'" if append else "Reset the",
+                username,
+            )
         )
 
     def has_active_plan(self, username: str, *, plan: Plan | None = None) -> bool:

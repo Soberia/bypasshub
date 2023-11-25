@@ -16,8 +16,6 @@ log_size = config["log"]["size"]
 log_storage = config["log"]["store"]
 log_level = logging.getLevelName(config["log"]["level"].upper())
 log_dir = Path(f"{config['log']['path']}")
-if log_storage and not log_dir.exists():
-    log_dir.mkdir(parents=True, exist_ok=True)
 
 
 class _StorageFormatter(logging.Formatter):
@@ -40,6 +38,35 @@ class _ConsoleFormatter(ColourizedFormatter):
         return (
             super().formatException(*args) if config["log"]["stdout_traceback"] else ""
         )
+
+
+def setup() -> None:
+    """
+    Configures the logger.
+
+    To correctly registers the log handlers, this should
+    be called before any other application logic.
+    """
+    if log_storage:
+        if not log_dir.exists():
+            log_dir.mkdir(parents=True, exist_ok=True)
+    else:
+        # Preventing the logs to be stored on the disk
+        for handler in list(_config["handlers"].keys()):
+            if handler.startswith("storage"):
+                del _config["handlers"][handler]
+        for logger in _config["loggers"].values():
+            for handler in (handlers := logger["handlers"]):
+                if handler.startswith("storage"):
+                    handlers.remove(handler)
+
+    # Attaching custom exception handler for logging the
+    # uncaught exceptions in the main and derived threads.
+    # NOTE: Handler also should be attached on AsyncIO's event
+    #       loop on it's creation for handling uncaught exceptions
+    #       in asynchronous tasks.
+    sys.excepthook = threading.excepthook = uncaught_exception_handler
+    logging.config.dictConfig(_config)
 
 
 def uncaught_exception_handler(*args) -> None:
@@ -163,19 +190,3 @@ _config = {
         },
     },
 }
-
-# Preventing the logs to be stored on the disk
-if not log_storage:
-    for logger in _config["loggers"].values():
-        for handler in (handlers := logger["handlers"]):
-            if handler.startswith("storage"):
-                handlers.remove(handler)
-
-
-# Attaching custom exception handler for logging the
-# uncaught exceptions in the main and derived threads.
-# NOTE: Handler also should be attached on AsyncIO's event
-#       loop on it's creation for handling uncaught exceptions
-#       in asynchronous tasks.
-sys.excepthook = threading.excepthook = uncaught_exception_handler
-logging.config.dictConfig(_config)

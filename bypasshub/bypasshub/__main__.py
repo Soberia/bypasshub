@@ -1,7 +1,7 @@
 import asyncio
 from typing import NoReturn
 
-import bypasshub.log  # pyright: ignore
+from bypasshub import log
 from bypasshub.cli import CLI
 from bypasshub.cleanup import Cleanup
 from bypasshub.monitor import Monitor
@@ -10,6 +10,8 @@ from bypasshub.utils import Process, create_event_loop
 
 
 async def main() -> None:
+    log.setup()
+
     if await CLI():
         return
 

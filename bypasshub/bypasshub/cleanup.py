@@ -21,12 +21,12 @@ class Cleanup:
     __callbacks = set()
 
     def __new__(cls) -> Self:
+        process = multiprocessing.current_process()
         if Cleanup.__instance is None:
             Cleanup.__instance = super().__new__(cls)
             Cleanup.__instance._is_cleaning = None
-            Cleanup.__instance._is_main_process = (
-                multiprocessing.current_process().name == "MainProcess"
-            )
+            Cleanup.__instance._process_name = process.name
+            Cleanup.__instance._is_main_process = process.name == "MainProcess"
             Cleanup.__instance.log = (
                 # Preventing duplicated logs on subprocesses
                 Cleanup.__instance._is_main_process
@@ -61,8 +61,11 @@ class Cleanup:
                 if async_callbacks:
                     await asyncio.gather(*[callback() for callback in async_callbacks])
 
-                if self._log:
-                    logger.debug("The scheduled tasks are finished successfully")
+                logger.debug(
+                    "The scheduled tasks are finished successfully{}".format(
+                        "" if self._is_main_process else f" (in '{self._process_name}')"
+                    )
+                )
 
             self._is_cleaning = False
             if self._is_main_process:
