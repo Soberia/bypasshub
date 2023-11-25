@@ -252,6 +252,8 @@ class Manager(Users):
             await self._delete_user(username)
         except ExceptionGroup as _error:
             if not force:
+                with suppress(Exception):
+                    await self._add_user(**self.get_credentials(username))
                 logger.error(f"Failed to delete user '{username}'")
                 raise _error
             error = errors.SynchronizationError(
