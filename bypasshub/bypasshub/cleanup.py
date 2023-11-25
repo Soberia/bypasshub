@@ -17,12 +17,19 @@ class Cleanup:
     termination by the `SIGINT` or `SIGTERM` signals.
     """
 
+    __pid = None
     __instance = None
     __callbacks = set()
 
     def __new__(cls) -> Self:
         process = multiprocessing.current_process()
-        if Cleanup.__instance is None:
+        if Cleanup.__pid != process.pid:
+            Cleanup.__pid = process.pid
+            if len(Cleanup.__callbacks):
+                # Parent processes forked this process.
+                # Previous tasks should be ignored.
+                Cleanup.__callbacks.clear()
+
             Cleanup.__instance = super().__new__(cls)
             Cleanup.__instance._is_cleaning = None
             Cleanup.__instance._process_name = process.name
@@ -32,6 +39,7 @@ class Cleanup:
                 Cleanup.__instance._is_main_process
             )
             Cleanup.__instance._listen()
+
         return Cleanup.__instance
 
     async def _handler(self, signal: Signals) -> None:
@@ -54,6 +62,12 @@ class Cleanup:
                     if signal == SIGINT:
                         message += " (Ctrl+C to skip)"
                     logger.info(message)
+
+                # Waiting for the child processes to terminate
+                if self._is_main_process:
+                    for process in multiprocessing.active_children():
+                        if process.name.startswith(__package__) and process.is_alive():
+                            process.join()
 
                 if callbacks:
                     for callback in callbacks:

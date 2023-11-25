@@ -22,7 +22,7 @@ async def run() -> None:
     with Users() as users:
         users.generate_list()
 
-    Process(target=api, daemon=True, name="api").start()
+    Process(target=api, daemon=True, name=f"{__package__}_api").start()
 
     cleanup = Cleanup()
     monitor = Monitor()
