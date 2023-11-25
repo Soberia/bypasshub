@@ -47,6 +47,12 @@ class Xray(BaseService):
     """
     The `Xray-core` proxy server service.
 
+    NOTE:   The `Xray-core` uses `gRPC` for its API.
+            The `gRPC` Python implementation requires the process not to be
+            forked before establishing the connection. Therefore, this class
+            must not be instantiated before forking the running process.
+            See: https://github.com/grpc/grpc/tree/master/examples/python/multiprocessing
+
     Attributes:
         `timeout`:
             The time in seconds to wait for the communications to the
