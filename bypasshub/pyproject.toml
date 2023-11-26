@@ -12,6 +12,7 @@ license = {text = "MIT License"}
 authors = [{ name = "Saber Hayati", email = "SaberHayati@outlook.com" }]
 keywords = ["ocserv", "OpenConnect", "Xray-core", "NGINX", "VPN", "Proxy"]
 urls = { homepage = "https://github.com/Soberia/bypasshub" }
+scripts = { bypasshub = "bypasshub.__main__:run" }
 dependencies = [
     "orjson~=3.9.5",
     "fastapi~=0.103.0",
@@ -19,8 +20,6 @@ dependencies = [
     "grpcio-tools==1.57.0",
     "uvicorn[standard]~=0.23.2"
 ]
-optional-dependencies = { dev = ["black"] }
-scripts = { bypasshub = "bypasshub.__main__:run" }
 classifiers = [
     "Topic :: System :: Networking",
     "Topic :: System :: Networking :: Monitoring",

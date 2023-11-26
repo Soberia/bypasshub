@@ -11,16 +11,25 @@
 		"pip",
 		"install",
 		"--editable",
-		"/usr/local/src/bypasshub[dev]"
+		"/usr/local/src/bypasshub"
 	],
-	"customizations": {
+		"customizations": {
 		"vscode": {
 			"settings": {
 				"terminal.integrated.defaultProfile.linux": "bash",
-				"python.formatting.provider": "black"
+				"[python]": {
+					"editor.defaultFormatter": "charliermarsh.ruff"
+				},
+				"ruff.format.args": [
+					"--preview"
+				],
+				"ruff.lint.args": [
+					"--preview"
+				]
 			},
 			"extensions": [
 				"ms-python.python",
+				"charliermarsh.ruff",
 				"streetsidesoftware.code-spell-checker",
 				"yy0931.vscode-sqlite3-editor"
 			]
