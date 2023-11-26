@@ -60,7 +60,7 @@ services:
     bypasshub:
         build: ./bypasshub
         volumes:
-            - ./bypasshub:/usr/local/src/bypasshub:ro
+            - ./bypasshub:/usr/local/src/bypasshub/bypasshub:ro
             - ./bypasshub/database:/var/lib/bypasshub
             - temp:/tmp
         networks:
@@ -69,11 +69,11 @@ services:
             - default
         environment:
             DOMAIN: $DOMAIN
-            ENABLE_API: $ENABLE_API
+ENABLE_API: $ENABLE_API
             ENABLE_API_UI: $ENABLE_API_UI
             ENABLE_XRAY_CDN: $ENABLE_XRAY_CDN
             ENABLE_XRAY_SUBSCRIPTION: $ENABLE_XRAY_SUBSCRIPTION
-            API_KEY: $API_KEY
+                        API_KEY: $API_KEY
             XRAY_SNI: $XRAY_SNI
             XRAY_CDN_SNI: $XRAY_CDN_SNI
             TLS_PORT: $TLS_PORT

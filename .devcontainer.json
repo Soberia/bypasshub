@@ -11,9 +11,12 @@
 		"pip",
 		"install",
 		"--editable",
-		"/usr/local/src/bypasshub"
+		"/usr/local/src/bypasshub/bypasshub"
 	],
-		"customizations": {
+	"features": {
+		"ghcr.io/devcontainers/features/git:1": {}
+	},
+	"customizations": {
 		"vscode": {
 			"settings": {
 				"terminal.integrated.defaultProfile.linux": "bash",

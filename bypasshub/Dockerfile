@@ -2,7 +2,7 @@ ARG XRAY_VERSION=1.8.3
 
 FROM python:slim AS packages
 ARG XRAY_VERSION
-COPY . /usr/local/src/bypasshub/
+COPY . /usr/local/src/bypasshub/bypasshub/
 SHELL ["bash", "-c"]
 RUN apt-get update && \
     apt-get install -y wget; \
@@ -13,7 +13,7 @@ RUN apt-get update && \
     package=xray_rpc; \
     mkdir $package; \
     shopt -s globstar; \
-    pip install --no-cache-dir --editable /usr/local/src/bypasshub/; \
+    pip install --no-cache-dir --editable /usr/local/src/bypasshub/bypasshub/; \
     python -m grpc_tools.protoc \
         --python_out $package \
         --grpc_python_out $package \

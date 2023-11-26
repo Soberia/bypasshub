@@ -3,4 +3,6 @@ services:
         entrypoint: ["sleep", "infinity"]
         stop_grace_period: 5s
         volumes:
-            - ./bypasshub:/usr/local/src/bypasshub
+            - ./bypasshub:/usr/local/src/bypasshub/bypasshub
+            - ./.git:/usr/local/src/bypasshub/.git:ro
+            - ./.gitignore:/usr/local/src/bypasshub/.gitignore:ro
