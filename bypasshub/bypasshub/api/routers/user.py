@@ -2,16 +2,15 @@ from uuid import uuid4
 from typing import Annotated
 from datetime import timedelta
 
-from pydantic import BaseModel, Field, ValidationError
-from pydantic_core import PydanticCustomError, InitErrorDetails
+from pydantic import BaseModel, Field
 from fastapi import APIRouter, Depends, Query, Body
-from fastapi.exceptions import RequestValidationError
 from starlette.status import (
     HTTP_200_OK,
     HTTP_400_BAD_REQUEST,
     HTTP_500_INTERNAL_SERVER_ERROR,
 )
 
+from ..utils import value_error_converter
 from ..dependencies import get_manager, validate_username
 from ... import errors
 from ...managers import Manager
@@ -75,6 +74,29 @@ class PlanRequest(BaseModel):
                 "The plan extra traffic limit in bytes."
                 " If user's plan traffic limit is reached,"
                 " this value will be consumed for managing the user's traffic usage."
+            ),
+        ),
+    ] = None
+
+
+class ReservedPlanRequest(BaseModel):
+    plan_duration: Annotated[
+        int | None,
+        Field(
+            alias="duration",
+            description=(
+                "The reserved plan duration in seconds."
+                " If not specified, no time restriction will be applied."
+            ),
+        ),
+    ] = None
+    plan_traffic: Annotated[
+        int | None,
+        Field(
+            alias="traffic",
+            description=(
+                "The reserved plan traffic limit in bytes."
+                " If not specified, no traffic restriction will be applied."
             ),
         ),
     ] = None
@@ -330,21 +352,82 @@ async def update_plan(
             preserve_traffic_usage=preserve_traffic_usage,
         )
     except ValueError as error:
-        raise RequestValidationError(
-            errors=(
-                ValidationError.from_exception_data(
-                    "ValueError",
-                    [
-                        InitErrorDetails(
-                            type=PydanticCustomError(
-                                "value-error", message := str(error).replace("_", "-")
-                            ),
-                            loc=("body", message.split()[0].replace("'", "")),
-                        )
-                    ],
-                )
-            ).errors()
-        )
+        raise value_error_converter(error)
+
+
+@router.patch(
+    "/update-reserved-plan",
+    tags=["user"],
+    summary="Updates the user's reserved plan",
+    responses={
+        HTTP_400_BAD_REQUEST: {
+            "model": HTTPSerializedError,
+            "content": {
+                "application/json": {
+                    "examples": {
+                        **user_not_exist_example,
+                        "user doesn't have an active plan": {
+                            "value": {
+                                "details": [
+                                    errors.NoActivePlanError("john_doe").serialize()
+                                ]
+                            },
+                        },
+                    }
+                }
+            },
+        }
+    },
+)
+async def update_reserved_plan(
+    manager: Annotated[Manager, Depends(get_manager)],
+    *,
+    username: Annotated[str, Depends(validate_username)],
+    id: Annotated[
+        int | None,
+        Query(
+            description=(
+                "The identifier related to this plan update that would be"
+                " stored in the database plan history table."
+            )
+        ),
+    ] = None,
+    reserved_plan: Annotated[
+        ReservedPlanRequest,
+        Body(
+            alias="reserved-plan",
+            openapi_examples={
+                "unlimited traffic for one month": {
+                    "value": {"duration": int(timedelta(days=30).total_seconds())}
+                },
+                "10GB traffic for one month": {
+                    "value": {
+                        "duration": int(timedelta(days=30).total_seconds()),
+                        "traffic": 1e10,
+                    }
+                },
+                "10GB traffic for unlimited time": {"value": {"traffic": 1e10}},
+                "unlimited traffic and time": {"value": {}},
+            },
+        ),
+    ],
+    remove: Annotated[
+        bool,
+        Query(description="Remove the reserved plan."),
+    ] = None,
+) -> "None":
+    if remove:
+        manager.unset_reserved_plan(username)
+    else:
+        try:
+            manager.set_reserved_plan(
+                username,
+                id=id,
+                duration=reserved_plan.plan_duration,
+                traffic=reserved_plan.plan_traffic,
+            )
+        except ValueError as error:
+            raise value_error_converter(error)
 
 
 @router.put(

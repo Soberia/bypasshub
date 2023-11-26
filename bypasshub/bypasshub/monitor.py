@@ -43,8 +43,7 @@ class Monitor(Manager):
             the `monitor_interval` parameter.
             The default value is equal to `monitor_passive_steps` property
             of the configuration file.
-            If not a positive integer is provided, the synchronization will
-            be disabled.
+            `ValueError` will be raised if value is not a positive number.
     """
 
     def __init__(
@@ -56,11 +55,9 @@ class Monitor(Manager):
         self.interval = interval
         self.steps = steps
         if self.interval <= 0:
-            raise ValueError("The 'interval' parameter should be grater than zero")
-
-        self._sync_enabled = self.steps > 0
-        if not self._sync_enabled:
-            logger.info("Services and database synchronization procedure is disabled")
+            raise ValueError("The 'interval' parameter should be greater than zero")
+        elif self.steps <= 0:
+            raise ValueError("The 'steps' parameter should be greater than zero")
 
         self._task = None
         self._idle = None
@@ -73,7 +70,7 @@ class Monitor(Manager):
     async def _passive_monitor(self) -> None:
         """Periodically synchronizes the services with the database."""
         self._counted_steps += 1
-        if self.steps > 1 and self._counted_steps < self.steps:
+        if self._counted_steps < self.steps:
             return
 
         await self._sync(silent=True)
@@ -136,7 +133,10 @@ class Monitor(Manager):
                     downlink,
                 )
 
-            if not self.has_active_plan(username, plan=plan):
+            if not (
+                self.has_active_plan(username, plan=plan)
+                or self.activate_reserved_plan(username)
+            ):
                 await self._delete_user_by_service(
                     service,
                     username,
@@ -230,8 +230,7 @@ class Monitor(Manager):
             )
             for service in self._services
         ]
-        if self._sync_enabled:
-            tasks.append((self._passive_monitor, {}, f"{TASK_NAME_PREFIX}_passive"))
+        tasks.append((self._passive_monitor, {}, f"{TASK_NAME_PREFIX}_passive"))
 
         self._task = asyncio.create_task(self._monitor(tasks), name=TASK_NAME_PREFIX)
         logger.info("The monitor procedure is started")

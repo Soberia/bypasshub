@@ -69,7 +69,7 @@ class Xray(BaseService):
     def __init__(self, timeout: int | float = timeout) -> None:
         self.timeout = timeout
         if self.timeout <= 0:
-            raise ValueError("The 'timeout' parameter should be grater than zero")
+            raise ValueError("The 'timeout' parameter should be greater than zero")
 
         self._channel = grpc.aio.insecure_channel(f"unix:{xray_api_socket_path}")
         self._stats_stub = StatsServiceStub(self._channel)

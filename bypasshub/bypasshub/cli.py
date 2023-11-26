@@ -121,6 +121,9 @@ class CLI:
         )
         self._user = user = subparser.add_parser("user", help="Manage the users")
         self._plan = plan = subparser.add_parser("plan", help="Update the user's plan")
+        self._reserved_plan = reserved_plan = subparser.add_parser(
+            "reserved-plan", help="Update the user's reserved plan"
+        )
         self._info = info = subparser.add_parser("info", help="Get the users' info")
         self._database = database = subparser.add_parser(
             "database", help="Manage the database"
@@ -199,6 +202,33 @@ class CLI:
             action="store_true",
             help="Do not reset the recorded traffic usage from the previous plan",
         )
+        reserved_plan.add_argument("username", **username_arguments)
+        reserved_plan.add_argument(
+            "-d",
+            "--duration",
+            type=int,
+            metavar="<INT>",
+            help=(
+                "The reserved plan duration in seconds."
+                " If not specified, no time restriction will be applied"
+            ),
+        )
+        reserved_plan.add_argument(
+            "-t",
+            "--traffic",
+            type=int,
+            metavar="<INT>",
+            help=(
+                "The reserved plan traffic limit in bytes."
+                " If not specified, no traffic restriction will be applied"
+            ),
+        )
+        reserved_plan.add_argument(
+            "--remove",
+            default=None,
+            action="store_true",
+            help="Remove the reserved plan",
+        )
         info.add_argument(
             "-u", "--users", action="store_true", help="Show all the users"
         )
@@ -217,6 +247,11 @@ class CLI:
             help="Show the user's credentials",
         )
         info.add_argument("--plan", metavar="<USERNAME>", help="Show the user's plan")
+        info.add_argument(
+            "--reserved-plan",
+            metavar="<USERNAME>",
+            help="Show the user's reserved plan",
+        )
         info.add_argument(
             "--total-traffic",
             metavar="<USERNAME>",
@@ -383,6 +418,19 @@ class CLI:
                             )
                         )[1]:
                             self._log(exception)
+                    case "reserved-plan":
+                        for username in arguments.username:
+                            try:
+                                if arguments.remove:
+                                    manager.unset_reserved_plan(username)
+                                else:
+                                    manager.set_reserved_plan(
+                                        username,
+                                        duration=arguments.duration,
+                                        traffic=arguments.traffic,
+                                    )
+                            except Exception as error:
+                                self._log(error)
                     case "info":
                         if arguments.users:
                             print(*manager.usernames, sep="\n")
@@ -404,6 +452,18 @@ class CLI:
                                 ],
                                 sep="\n",
                             )
+                        elif username := arguments.reserved_plan:
+                            if reserved_plan := manager.get_reserved_plan(username):
+                                print(
+                                    *[
+                                        (
+                                            f"{key.replace('plan_', '').replace('_', '-')}:"
+                                            f" {'-' if value is None else value}"
+                                        )
+                                        for key, value in reserved_plan.items()
+                                    ],
+                                    sep="\n",
+                                )
                         elif username := arguments.total_traffic:
                             print(
                                 *[

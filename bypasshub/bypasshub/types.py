@@ -63,14 +63,17 @@ class Config(TypedDict):
     environment: _ConfigEnvironment
 
 
-class PlanBase(TypedDict):
-    plan_start_date: str | None
+class _PlanConstraint(TypedDict):
     plan_duration: int | None
     plan_traffic: int | None
+
+
+class _PlanBase(_PlanConstraint):
+    plan_start_date: str | None
     plan_extra_traffic: int
 
 
-class Plan(PlanBase):
+class Plan(_PlanBase):
     plan_traffic_usage: int
     plan_extra_traffic_usage: int
 
@@ -86,7 +89,15 @@ class User(Credentials, Plan):
     total_download: int
 
 
-class History(PlanBase):
+class ReservedPlan(_PlanConstraint):
+    plan_reserved_date: str | None
+
+
+class UserReservedPlan(ReservedPlan):
+    username: str
+
+
+class History(_PlanBase):
     id: int | None
     date: str
     action: PlanUpdateAction
@@ -96,6 +107,7 @@ class History(PlanBase):
 
 class DatabaseSchema(TypedDict):
     users: list[User]
+    reserved_plans: list[UserReservedPlan]
     history: list[History]
 
 

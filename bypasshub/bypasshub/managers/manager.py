@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 class Reason(StrEnum):
     UPDATED_PLAN = "updated plan"
     EXPIRED_PLAN = "expired plan"
+    RESERVED_PLAN = "activated reserved plan"
     SYNCHRONIZATION = "database synchronization"
     ZOMBIE_USER = "user doesn't exist on database"
 
@@ -145,11 +146,20 @@ class Manager(Users):
                 had_active_plan = self._users[username]
                 if had_active_plan:
                     if not has_active_plan:
-                        method = self._delete_user
-                        args = (Reason.EXPIRED_PLAN,)
+                        if not self.activate_reserved_plan(username):
+                            method = self._delete_user
+                            args = (Reason.EXPIRED_PLAN,)
+                        else:
+                            synced = True
                 elif has_active_plan:
                     method = self._add_user
                     args = (self.get_credentials(username)["uuid"], Reason.UPDATED_PLAN)
+                elif self.activate_reserved_plan(username):
+                    method = self._add_user
+                    args = (
+                        self.get_credentials(username)["uuid"],
+                        Reason.RESERVED_PLAN,
+                    )
             except KeyError:
                 # User is added
                 if has_active_plan:
@@ -157,6 +167,12 @@ class Manager(Users):
                     args = (
                         self.get_credentials(username)["uuid"],
                         Reason.SYNCHRONIZATION,
+                    )
+                elif self.activate_reserved_plan(username):
+                    method = self._add_user
+                    args = (
+                        self.get_credentials(username)["uuid"],
+                        Reason.RESERVED_PLAN,
                     )
 
             if method:
@@ -376,6 +392,8 @@ class Manager(Users):
         exception is raised during calling other methods of this class
         or when the database is modified manually or by other external
         processes while the main process is up and running.
+        By running this, users' reserved plans also get activated if the
+        users do not have an active plan.
 
         Returns:
             Whether the synchronization is performed.

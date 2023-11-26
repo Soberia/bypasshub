@@ -37,7 +37,7 @@ class OpenConnect(BaseService):
     def __init__(self, timeout: int | float = timeout) -> None:
         self.timeout = timeout
         if self.timeout <= 0:
-            raise ValueError("The 'timeout' parameter should be grater than zero")
+            raise ValueError("The 'timeout' parameter should be greater than zero")
 
         self._last_boot = None
         self._traffic_loaded = None

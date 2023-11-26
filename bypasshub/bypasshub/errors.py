@@ -6,6 +6,7 @@ from starlette.status import HTTP_400_BAD_REQUEST, HTTP_500_INTERNAL_SERVER_ERRO
 from .types import SerializedError
 from .constants import XrayService, OpenConnectService
 
+SQLITE_CONSTRAINT_FOREIGNKEY = 787
 SQLITE_CONSTRAINT_PRIMARYKEY = 1555
 SQLITE_CONSTRAINT_UNIQUE = 2067
 
@@ -273,5 +274,17 @@ class SynchronizationError(BaseError):
             12,
             HTTP_500_INTERNAL_SERVER_ERROR,
             cause=self.create_exception_group(self.GROUP_MESSAGE, cause),
+            **kwargs,
+        )
+
+
+class NoActivePlanError(BaseError):
+    """User does not have an active plan."""
+
+    def __init__(self, username: str = "", **kwargs) -> None:
+        super().__init__(
+            f"User {username and f''''{username}' '''}does not have an active plan",
+            13,
+            HTTP_400_BAD_REQUEST,
             **kwargs,
         )

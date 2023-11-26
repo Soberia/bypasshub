@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends
 from .user import user_not_exist_response_model
 from ..dependencies import get_manager, validate_username
 from ...managers import Manager
-from ...types import Credentials, Plan, Traffic
+from ...types import Credentials, Plan, ReservedPlan, Traffic
 
 router = APIRouter(prefix="/info")
 
@@ -55,6 +55,20 @@ async def plan(
     username: Annotated[str, Depends(validate_username)],
 ) -> Plan:
     return manager.get_plan(username)
+
+
+@router.get(
+    "/reserved-plan",
+    tags=["info"],
+    summary="The user's reserved plan",
+    responses=user_not_exist_response_model,
+)
+async def reserved_plan(
+    manager: Annotated[Manager, Depends(get_manager)],
+    *,
+    username: Annotated[str, Depends(validate_username)],
+) -> ReservedPlan | None:
+    return manager.get_reserved_plan(username)
 
 
 @router.get(

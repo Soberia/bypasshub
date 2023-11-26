@@ -16,7 +16,14 @@ from ..config import config
 from ..database import Database
 from ..constants import PlanUpdateAction
 from ..utils import current_time, convert_time, convert_size
-from ..types import Credentials, Plan, Traffic, Param, Return
+from ..types import (
+    Credentials,
+    Plan,
+    Traffic,
+    ReservedPlan,
+    Param,
+    Return,
+)
 
 USERNAME_MIN_LENGTH = 1
 USERNAME_MAX_LENGTH = 64
@@ -281,6 +288,7 @@ class Users:
         duration: timedelta | int | None = None,
         traffic: int | None = None,
         preserve_traffic_usage: bool | None = None,
+        callback: Callable | None = None,
     ) -> None:
         """Updates the user's plan in the database.
 
@@ -305,6 +313,10 @@ class Users:
             `preserve_traffic_usage`:
                 If `True` provided, recorded traffic usage will not reset
                 and the value from the previous plan will be preserved.
+            `callback`:
+                The callback function to perform additional queries during the
+                same database transaction which is responsible for updating the
+                user's plan.
 
         Raises:
             ``errors.UserNotExistError``:
@@ -328,11 +340,11 @@ class Users:
         if type(duration) is timedelta:
             duration = int(duration.total_seconds())  # ignoring milliseconds
         if type(duration) is int and duration <= 0:
-            raise ValueError("The 'duration' parameter should be grater than zero")
+            raise ValueError("The 'duration' parameter should be greater than zero")
 
         if traffic is not None:
             if traffic <= 0:
-                raise ValueError("The 'traffic' parameter should be grater than zero")
+                raise ValueError("The 'traffic' parameter should be greater than zero")
             preserve_traffic_usage = None if preserve_traffic_usage else 0
         else:
             preserve_traffic_usage = 0
@@ -391,6 +403,9 @@ class Users:
                 ),
             )
 
+            if callback:
+                callback()
+
         logger.debug(
             "Plan is updated for user '{}' {}with '{}' time and '{}' traffic".format(
                 username,
@@ -429,7 +444,7 @@ class Users:
         if append := extra_traffic is not None:
             if extra_traffic <= 0:
                 raise ValueError(
-                    "The 'extra_traffic' parameter should be grater than zero"
+                    "The 'extra_traffic' parameter should be greater than zero"
                 )
             elif self._is_unlimited_traffic_plan(self.get_plan(username)):
                 raise errors.NoTrafficLimitError(username)
@@ -480,6 +495,171 @@ class Users:
                 username,
             )
         )
+
+    @_validate_username
+    def get_reserved_plan(self, username: str) -> ReservedPlan | None:
+        """Returns the user's reserved plan if the user has one.
+
+        Raises:
+            ``errors.UserNotExistError``:
+                When the specified user does not exist.
+        """
+        if not self._is_exist(username):
+            raise errors.UserNotExistError(username)
+
+        return self._database.execute(
+            """
+            SELECT
+                plan_reserved_date,
+                plan_duration,
+                plan_traffic
+            FROM
+                reserved_plans
+            WHERE
+                username = ?
+            """,
+            (username,),
+        ).fetchone()
+
+    @_validate_username
+    def set_reserved_plan(
+        self,
+        username: str,
+        *,
+        id: int | None = None,
+        duration: timedelta | int | None = None,
+        traffic: int | None = None,
+    ) -> None:
+        """Creates or updates the user's reserved plan in the database.
+
+        Args:
+            `id`:
+                The identifier related to this plan update that would be
+                stored in the database plan history table.
+            `duration`:
+                The reserved plan duration in seconds.
+                If omitted, no time restriction will be applied.
+                `ValueError` will be raised if value is not a positive integer.
+            `traffic`:
+                The reserved plan traffic limit in bytes.
+                If omitted, no traffic restriction will be applied.
+                `ValueError` will be raised if value is not a positive integer.
+
+        Raises:
+            ``errors.UserNotExistError``:
+                When the specified user does not exist.
+            ``errors.NoActivePlanError``:
+                When the specified user does not have an active plan.
+        """
+        if type(duration) is timedelta:
+            duration = int(duration.total_seconds())  # ignoring milliseconds
+        if type(duration) is int and duration <= 0:
+            raise ValueError("The 'duration' parameter should be greater than zero")
+
+        if traffic is not None and traffic <= 0:
+            raise ValueError("The 'traffic' parameter should be greater than zero")
+
+        if not self.has_active_plan(username):
+            raise errors.NoActivePlanError(username)
+
+        with self._database:
+            try:
+                self._database.execute(
+                    """
+                    INSERT INTO reserved_plans (
+                        username,
+                        plan_reserved_date,
+                        plan_duration,
+                        plan_traffic
+                    )
+                    VALUES
+                        (?, ?, ?, ?)
+                    ON CONFLICT
+                        (username)
+                    DO UPDATE SET
+                        plan_reserved_date = ?,
+                        plan_duration = ?,
+                        plan_traffic = ?
+                    """,
+                    (username, *((current_time().isoformat(), duration, traffic) * 2)),
+                )
+            except sqlite3.IntegrityError as error:
+                if error.sqlite_errorcode == errors.SQLITE_CONSTRAINT_FOREIGNKEY:
+                    raise errors.UserNotExistError(username)
+                raise
+
+            self._database.execute(
+                """
+                INSERT INTO history (
+                    id,
+                    date,
+                    action,
+                    username,
+                    plan_duration,
+                    plan_traffic
+                )
+                VALUES
+                    (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    id,
+                    current_time().isoformat(),
+                    PlanUpdateAction.UPDATE_RESERVED_PLAN,
+                    username,
+                    duration,
+                    traffic,
+                ),
+            )
+
+        logger.info(
+            (
+                "Reserved plan is updated for user"
+                " '{}' with '{}' time and '{}' traffic"
+            ).format(
+                username,
+                convert_time(duration) if duration else "unlimited",
+                convert_size(traffic) if traffic is not None else "unlimited",
+            )
+        )
+
+    @_validate_username
+    def unset_reserved_plan(self, username: str) -> None:
+        """Removes the user's reserved plan from the database.
+
+        Raises:
+            ``errors.UserNotExistError``:
+                When the specified user does not exist.
+        """
+        if not self._is_exist(username):
+            raise errors.UserNotExistError(username)
+
+        with self._database:
+            if self._database.execute(
+                "DELETE FROM reserved_plans WHERE username = ? RETURNING *", (username,)
+            ).fetchone():
+                logger.info(f"Reserved plan is removed for user '{username}'")
+
+    @_validate_username
+    def activate_reserved_plan(self, username: str) -> bool:
+        """Replaces the user's current plan with the reserved one if the user has any.
+
+        Returns:
+            Whether the reserved plan is replaced with the user's current plan.
+        """
+        if reserved_plan := self.get_reserved_plan(username):
+            duration = reserved_plan["plan_duration"]
+            self.set_plan(
+                username,
+                start_date=current_time().isoformat() if duration is not None else None,
+                duration=duration,
+                traffic=reserved_plan["plan_traffic"],
+                callback=functools.partial(self.unset_reserved_plan, username),
+            )
+
+            logger.info(f"Reserved plan is activated for user '{username}'")
+            return True
+
+        return False
 
     def has_active_plan(self, username: str, *, plan: Plan | None = None) -> bool:
         """
@@ -587,8 +767,10 @@ class Users:
             for credentials in self._database.execute(
                 "SELECT username, uuid FROM users"
             ).fetchall():
-                if self.has_active_plan(credentials["username"]):
-                    stream.write(f"{credentials['username']} {credentials['uuid']}\n")
+                username = credentials["username"]
+                if self.has_active_plan(username):
+                    # ``self.activate_reserved_plan()`` method must not be called here
+                    stream.write(f"{username} {credentials['uuid']}\n")
 
             stream.seek(0)
             with open(temp_path.joinpath("users"), "w") as file:

@@ -68,6 +68,14 @@ class Database:
                 total_download BIGINT DEFAULT 0, /* in bytes */
                 PRIMARY KEY (username)
             );
+            CREATE TABLE IF NOT EXISTS reserved_plans (
+                username VARCHAR(64),
+                plan_reserved_date TEXT,
+                plan_duration INT, /* in seconds */
+                plan_traffic BIGINT, /* in bytes */
+                PRIMARY KEY (username)
+                FOREIGN KEY (username) REFERENCES users (username) ON DELETE CASCADE
+            );
             CREATE TABLE IF NOT EXISTS history (
                 id INTEGER,
                 date TEXT,

@@ -22,13 +22,10 @@ monitor_interval = 10 # Second
 # The services synchronization with the database interval.
 # This interval is calculated by multiplying this value to
 # the `monitor_interval`.
-# Specify Zero to disable the synchronization.
 # The synchronization is necessary when the database is
 # intended to be manually modified (or by other external
 # processes for example if the database is shared with
-# multiple servers). Otherwise, it may be disabled but it's
-# recommended to stay enabled if system resources
-# limitation is not the concern.
+# multiple servers) and to handle the reserved plans.
 monitor_passive_steps = 3
 # Whether to remove the users that doesn't exist on the
 # database but are active and connected to the services.
