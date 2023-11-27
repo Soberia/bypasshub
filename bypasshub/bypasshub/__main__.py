@@ -4,7 +4,7 @@ from typing import NoReturn
 
 from bypasshub import log
 from bypasshub.cli import CLI
-from bypasshub.utils import create_event_loop
+from bypasshub.utils import create_event_loop, is_duplicated_instance
 
 
 async def main() -> None:
@@ -12,6 +12,11 @@ async def main() -> None:
 
     if await CLI():
         return
+
+    if is_duplicated_instance():
+        raise RuntimeError(
+            f"Only one instance of '{__package__}' should be run at the same time"
+        )
 
     # Delaying the import for faster CLI responses
     await importlib.import_module("bypasshub.app").run()

@@ -1,14 +1,19 @@
+import os
 import sys
 import math
+import fcntl
 import asyncio
 import inspect
 import multiprocessing
 from typing import Any
+from pathlib import Path
 from datetime import datetime, timedelta, timezone
 from collections.abc import Iterable
 
 import uvloop
 
+from .config import config
+from .cleanup import Cleanup
 from .types import DataUnits, TimeUnits
 from .log import uncaught_exception_handler
 
@@ -35,6 +40,23 @@ def create_event_loop() -> uvloop.Loop:
     asyncio.set_event_loop(loop)
 
     return loop
+
+
+def is_duplicated_instance() -> bool:
+    """Whether there are other running instance of the application."""
+    lock_path = Path(config["main"]["temp_path"]).joinpath("lock")
+    lock = os.open(lock_path, os.O_WRONLY | os.O_CREAT)
+
+    try:
+        fcntl.lockf(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        Cleanup.add(
+            # Gracefully unlock and remove the lock file
+            lambda: fcntl.lockf(lock, fcntl.LOCK_UN) is None
+            and lock_path.unlink(missing_ok=True)
+        )
+        return False
+    except IOError:
+        return True
 
 
 def convert_size(
