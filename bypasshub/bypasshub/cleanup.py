@@ -23,9 +23,9 @@ class Cleanup:
 
     def __new__(cls) -> Self:
         process = multiprocessing.current_process()
-        if Cleanup.__pid != process.pid:
+        if (pid := Cleanup.__pid) != process.pid:
             Cleanup.__pid = process.pid
-            if len(Cleanup.__callbacks):
+            if pid is not None and len(Cleanup.__callbacks):
                 # Parent processes forked this process.
                 # Previous tasks should be ignored.
                 Cleanup.__callbacks.clear()
