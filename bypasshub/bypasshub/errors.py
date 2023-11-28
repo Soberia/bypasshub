@@ -10,6 +10,8 @@ SQLITE_CONSTRAINT_FOREIGNKEY = 787
 SQLITE_CONSTRAINT_PRIMARYKEY = 1555
 SQLITE_CONSTRAINT_UNIQUE = 2067
 
+UNIX_SOCKET_FAILURE = (FileNotFoundError, ConnectionRefusedError, BlockingIOError)
+
 
 class BaseError(Exception):
     """The base exception that can be inherited by the other exceptions.
@@ -286,5 +288,17 @@ class NoActivePlanError(BaseError):
             f"User {username and f''''{username}' '''}does not have an active plan",
             13,
             HTTP_400_BAD_REQUEST,
+            **kwargs,
+        )
+
+
+class StateSynchronizerTimeout(BaseError):
+    """Failed to communicate with process state synchronizer server."""
+
+    def __init__(self, **kwargs) -> None:
+        super().__init__(
+            "Failed to communicate with process state synchronizer server",
+            14,
+            HTTP_500_INTERNAL_SERVER_ERROR,
             **kwargs,
         )
