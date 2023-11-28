@@ -1,7 +1,8 @@
-from typing import ParamSpec, TypeVar, TypedDict, NotRequired, Any
+from threading import Lock
+from typing import ParamSpec, TypeVar, TypedDict, Literal, NotRequired, Any
 from typing_extensions import TypedDict  # TODO: Should be removed in Python 3.12
 
-from .constants import PlanUpdateAction
+from . import constants
 
 Param = ParamSpec("Param")
 Return = TypeVar("Return")
@@ -100,7 +101,7 @@ class UserReservedPlan(ReservedPlan):
 class History(_PlanBase):
     id: int | None
     date: str
-    action: PlanUpdateAction
+    action: constants.PlanUpdateAction
     username: str
     plan_extra_traffic: int | None
 
@@ -143,3 +144,18 @@ class TimeUnits(TypedDict):
     m: str
     h: str
     d: str
+
+
+class _ManagerUserState(TypedDict):
+    lock: Lock
+    synced: bool
+    has_active_plan: bool
+    services: dict[
+        Literal[constants.XrayService.NAME, constants.OpenConnectService.NAME],
+        constants.ServiceState,
+    ]
+
+
+class ManagerState(TypedDict):
+    reasons: dict[str, constants.ManagerReason]
+    users: dict[str, _ManagerUserState]

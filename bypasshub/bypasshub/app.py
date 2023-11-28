@@ -3,10 +3,10 @@ import logging
 
 from . import __version__
 from .utils import Process
-from .managers import Users
 from .cleanup import Cleanup
 from .monitor import Monitor
 from .database import Database
+from .managers import State, Users
 from .api.app import run as api
 
 logger = logging.getLogger(__name__)
@@ -25,6 +25,9 @@ async def run() -> None:
     Process(target=api, daemon=True, name=f"{__package__}_api").start()
 
     cleanup = Cleanup()
+    state = State()
+    cleanup.add(state.close)
+    state.run()
     monitor = Monitor()
     cleanup.add(monitor.stop)
     if Database.BACKUP_ENABLED:

@@ -1,7 +1,6 @@
 import asyncio
 import logging
 from time import time
-from enum import Enum
 from typing import Literal
 from collections.abc import Coroutine
 
@@ -9,7 +8,8 @@ from . import errors
 from .config import config
 from .managers import Manager, Xray
 from .utils import gather, convert_time
-from .managers.manager import Reason, Service
+from .constants import ServiceStatus, ManagerReason
+from .managers.manager import Service
 
 TASK_NAME_PREFIX = "monitor"
 TASK_GROUP_MESSAGE = "User Monitor Task Group"
@@ -18,11 +18,6 @@ monitor_interval = config["main"]["monitor_interval"]
 monitor_passive_steps = config["main"]["monitor_passive_steps"]
 monitor_zombies = config["main"]["monitor_zombies"]
 logger = logging.getLogger(__name__)
-
-
-class ServiceStatus(Enum):
-    DISCONNECTED = 0
-    CONNECTED = 1
 
 
 class Monitor(Manager):
@@ -73,7 +68,7 @@ class Monitor(Manager):
         if self._counted_steps < self.steps:
             return
 
-        await self._sync(silent=True)
+        await self._sync()
         self._counted_steps = 0
 
     async def _active_monitor(self, *, service: Service) -> None:
@@ -81,32 +76,52 @@ class Monitor(Manager):
         Updates the traffic usage for the users that are active and connected
         to the specified service in the current time and removes those ones
         that not have an active plan from the service.
-        """
-        # `Xray-core` still reports traffic usage for the deleted users
-        silent_delete = isinstance(service, Xray)
 
+        NOTE: `Xray-core` still reports traffic usage for the deleted users.
+        """
         for username, traffic in (await service.users_traffic_usage()).items():
+            uplink = traffic["uplink"]
+            downlink = traffic["downlink"]
+            session_traffic_usage = uplink + downlink
+
             try:
                 plan = self.get_plan(username)
             except errors.UserNotExistError:
-                if not silent_delete:
-                    logger.warning(
-                        f"User '{username}' is active on '{service.ALIAS}'"
-                        " but does not exist on the database"
-                    )
                 if monitor_zombies:
+                    with self._access_state():
+                        if username in self._state["users"]:
+                            continue
+
+                    no_log = False
+                    if isinstance(service, Xray):
+                        if session_traffic_usage > 0:
+                            # Users on `Xray-core` doesn't disconnect immediately
+                            # after the API call and the connection still is open
+                            # until the idle timeout. Furthermore, `Xray-core` still
+                            # reports the traffic usage for the deleted users anyway.
+                            # Silently removing the user when the user still consumes
+                            # traffic is the best we can do.
+                            no_log = True
+                        else:
+                            # User didn't consume any more traffic
+                            continue
+
+                    if not no_log:
+                        logger.warning(
+                            f"User '{username}' is active on '{service.ALIAS}'"
+                            " but does not exist on the database"
+                        )
                     await self._delete_user_by_service(
                         service,
                         username,
-                        Reason.ZOMBIE_USER,
-                        silent_delete,
+                        ManagerReason.ZOMBIE_USER,
+                        silent=True,
+                        no_existence_log=no_log,
                     )
 
                 continue
 
-            uplink = traffic["uplink"]
-            downlink = traffic["downlink"]
-            if (session_traffic_usage := uplink + downlink) > 0:
+            if session_traffic_usage > 0:
                 added_traffic_usage = added_extra_traffic_usage = 0
                 if not self._is_unlimited_traffic_plan(plan):
                     plan_traffic = plan["plan_traffic"]
@@ -137,12 +152,11 @@ class Monitor(Manager):
                 self.has_active_plan(username, plan=plan)
                 or self.activate_reserved_plan(username)
             ):
-                await self._delete_user_by_service(
-                    service,
-                    username,
-                    Reason.EXPIRED_PLAN,
-                    silent_delete,
-                )
+                async with self._get_async_lock(username):
+                    with self._get_process_lock(username):
+                        await self._delete_user_by_service(
+                            service, username, ManagerReason.EXPIRED_PLAN, silent=True
+                        )
 
     async def _monitor(
         self, tasks: list[tuple[Coroutine, dict[Literal["service"], Service], str]]
@@ -190,6 +204,8 @@ class Monitor(Manager):
                             logger.warning(
                                 f"Communication with '{name}' service is interrupted"
                             )
+                except* errors.StateSynchronizerTimeout as error:
+                    logger.error(error.exceptions[0])
                 finally:
                     for name, service in stats.items():
                         if (

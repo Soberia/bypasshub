@@ -15,7 +15,7 @@ async def main() -> None:
 
     if is_duplicated_instance():
         raise RuntimeError(
-            f"Only one instance of '{__package__}' should be run at the same time"
+            f"Only one instance of '{__package__}' should run at the same time"
         )
 
     # Delaying the import for faster CLI responses

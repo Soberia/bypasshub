@@ -348,6 +348,10 @@ class CLI:
                 error,
                 errors.SynchronizationError,  # already logged
             ):
+                if isinstance(error, errors.StateSynchronizerTimeout):
+                    error.message += f" (is '{__package__}' running?)"
+                    traceback = False
+
                 logger.exception(
                     repr(error) if isinstance(error, BaseError) else error,
                     exc_info=error if traceback else None,
@@ -355,7 +359,7 @@ class CLI:
 
     async def _exec(self, command: str) -> None:
         arguments = self._arguments
-        async with Manager() as manager:
+        async with Manager(skip_retry=True) as manager:
             try:
                 match command:
                     case "user":
@@ -501,6 +505,8 @@ class CLI:
                     case "database":
                         if arguments.sync:
                             try:
+                                if not manager.connected:
+                                    manager.connect()
                                 print(
                                     "Services are"
                                     f" {'synced' if (await manager.sync()) else 'in sync'}"

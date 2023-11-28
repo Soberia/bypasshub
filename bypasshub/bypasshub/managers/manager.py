@@ -1,16 +1,21 @@
+import asyncio
 import logging
-from typing import Self
-from enum import StrEnum
+from threading import Lock
 from contextlib import suppress
+from typing import Self, Optional
 from datetime import datetime, timedelta
+from multiprocessing import current_process
+from collections.abc import Iterable
 
 from .xray import Xray
 from .users import Users
+from .state import State
 from .openconnect import OpenConnect
 from .. import errors
 from ..utils import gather
 from ..config import config
-from ..types import Credentials
+from ..types import Credentials, ManagerState
+from ..constants import ServiceState, ManagerReason
 
 Service = Xray | OpenConnect
 
@@ -19,19 +24,27 @@ manage_openconnect = config["main"]["manage_openconnect"]
 logger = logging.getLogger(__name__)
 
 
-class Reason(StrEnum):
-    UPDATED_PLAN = "updated plan"
-    EXPIRED_PLAN = "expired plan"
-    RESERVED_PLAN = "activated reserved plan"
-    SYNCHRONIZATION = "database synchronization"
-    ZOMBIE_USER = "user doesn't exist on database"
+class Manager(Users, State[ManagerState]):
+    """The interface to manage the users on the services and database.
 
+    Attributes:
+        `skip_retry`:
+            If `True` provided, only tries once to connect to the state
+            synchronizer server and if failed, state synchronization with
+            other ``Manager`` instances will be skipped when it's possible.
+            Otherwise, ``errors.StateSynchronizerTimeout`` will be raised
+            if could not establish a connection to the server after passed
+            period of time.
+            It's possible to retry to establish the connection with
+            ``self.connect()`` method if the operation has failed.
+    """
 
-class Manager(Users):
-    """The interface to manage the users on the services and database."""
+    __pid = None
+    _async_locks = {}
 
-    def __init__(self) -> None:
+    def __init__(self, *, skip_retry: bool | None = None) -> None:
         super().__init__()
+        self._skip_retry = skip_retry
         self._xray = None
         self._openconnect = None
         self._services: list[Service] = []
@@ -45,9 +58,15 @@ class Manager(Users):
         if not self._services:
             raise RuntimeError("No service is enabled for managing")
 
-        self._users = {
-            username: self.has_active_plan(username) for username in self.usernames
-        }
+        if Manager.__pid != (pid := current_process().pid):
+            Manager.__pid = pid
+            if len(Manager._async_locks):
+                # Parent processes forked this process.
+                # Previous values should be ignored.
+                Manager._async_locks.clear()
+
+        State.__init__(self, __name__)
+        super().connect(skip_retry=self._skip_retry)
 
     async def __aenter__(self) -> Self:
         return self
@@ -55,130 +74,318 @@ class Manager(Users):
     async def __aexit__(self, *exception) -> None:
         await self.close()
 
+    def _load_state(self) -> None:
+        super()._load_state()
+        # Each individual user needs process and asynchronous locks.
+        # Acquiring a process lock is blocking in asynchronous contexts.
+        # Therefore, an asynchronous lock is also needed to prevent an
+        # asynchronous context switch (on the same process) while a
+        # process lock is needed to be acquired. Otherwise, without an
+        # asynchronous lock, the acquired process lock will never release
+        # and all the involved processes hang forever due to deadlocks.
+        username = None
+        with self._access_state():
+            with self._global_lock:
+                if not self._state:
+                    self._state = self._dict()
+                    self._state["reasons"] = self._dict()
+                    self._state["users"] = self._dict()
+                    self._add_user_state((username := self.usernames), synced=True)
+
+        if not (async_locks := Manager._async_locks):
+            for username in username or self.usernames:
+                async_locks[username] = asyncio.Lock()
+
+    def _add_user_state(
+        self,
+        usernames: Iterable[str],
+        service_state: ServiceState | None = None,
+        synced: bool | None = None,
+        safe: bool | None = None,
+    ) -> None:
+        synced = bool(synced)
+        users = self._state["users"]
+        dict = self._dict
+        lock = self._lock
+        global_lock = self._global_lock
+        async_locks = Manager._async_locks
+        service_names = [service.NAME for service in self._services]
+        for username in usernames:
+            async_locks[username] = asyncio.Lock()
+            has_active_plan = self.has_active_plan(username)
+            _service_state = (
+                service_state
+                if service_state is not None
+                else (ServiceState.ADDED if has_active_plan else ServiceState.DELETED)
+            )
+
+            try:
+                # Preventing the other processes to replace the state
+                if safe and not global_lock.acquire(blocking=False):
+                    global_lock.acquire()
+                    if username in users:
+                        continue
+
+                users[username] = dict(
+                    {
+                        "lock": lock(),
+                        "synced": synced,
+                        "has_active_plan": has_active_plan,
+                        "services": dict(
+                            {name: _service_state for name in service_names}
+                        ),
+                    }
+                )
+            finally:
+                safe and global_lock.release()
+
+    def _get_process_lock(
+        self, username: str, silent: bool | None = None
+    ) -> Optional[Lock]:
+        with self._access_state(silent):
+            users = self._state["users"]
+            if username not in users:
+                self._add_user_state(
+                    (username,), service_state=ServiceState.UNKNOWN, safe=True
+                )
+            return users[username]["lock"]
+
+    def _get_async_lock(self, username: str) -> asyncio.Lock:
+        async_locks = Manager._async_locks
+        try:
+            return async_locks[username]
+        except KeyError:
+            lock = async_locks[username] = asyncio.Lock()
+            return lock
+
     async def _add_user_by_service(
         self,
         service: Service,
         username: str,
         uuid: str,
-        reason: Reason | None = None,
+        reason: ManagerReason | None = None,
         silent: bool | None = None,
+        no_existence_log: bool | None = None,
     ) -> None:
+        with self._access_state(silent):
+            if (
+                self._state["users"][username]["services"][service.NAME]
+                == ServiceState.ADDED
+            ):
+                return
+
+        modify_state = None
         try:
             await service.add_user(username, uuid)
         except errors.UserExistError:
-            if not silent:
+            modify_state = True
+            if not no_existence_log:
                 logger.debug(
                     f"Tried to add existent user '{username}' to '{service.ALIAS}'"
                 )
         else:
+            modify_state = True
             if reason:
                 logger.info(
                     f"Added user '{username}' to '{service.ALIAS}' due to {reason}"
                 )
+        finally:
+            if modify_state:
+                with self._access_state(silent):
+                    self._state["users"][username]["services"][
+                        service.NAME
+                    ] = ServiceState.ADDED
 
     async def _delete_user_by_service(
         self,
         service: Service,
         username: str,
-        reason: Reason | None = None,
+        reason: ManagerReason | None = None,
         silent: bool | None = None,
+        no_existence_log: bool | None = None,
     ) -> None:
+        with self._access_state(silent):
+            if (
+                self._state["users"][username]["services"][service.NAME]
+                == ServiceState.DELETED
+            ):
+                return
+
+        modify_state = None
         try:
             await service.delete_user(username)
         except errors.UserNotExistError:
-            if not silent:
+            modify_state = True
+            if not no_existence_log:
                 logger.debug(
                     f"Tried to remove non-existent user '{username}'"
                     f" from '{service.ALIAS}'"
                 )
         else:
+            modify_state = True
             if reason:
                 logger.info(
                     f"Removed user '{username}' from '{service.ALIAS}' due to {reason}"
                 )
+        finally:
+            if modify_state:
+                with self._access_state(silent):
+                    self._state["users"][username]["services"][
+                        service.NAME
+                    ] = ServiceState.DELETED
 
     async def _add_user(
         self,
         username: str,
         uuid: str,
-        reason: Reason | None = None,
+        reason: ManagerReason | None = None,
         silent: bool | None = None,
     ) -> None:
-        if exceptions := (
-            await gather(
-                [
-                    self._add_user_by_service(service, username, uuid, reason, silent)
-                    for service in self._services
-                ]
-            )
-        )[1]:
-            raise ExceptionGroup(errors.SynchronizationError.GROUP_MESSAGE, exceptions)
+        process_lock = self._get_process_lock(username, silent)
+        async_lock = process_lock and self._get_async_lock(username)
+
+        try:
+            if process_lock:
+                await async_lock.acquire()
+                with self._access_state(silent):
+                    process_lock.acquire()
+
+            if exceptions := (
+                await gather(
+                    [
+                        self._add_user_by_service(
+                            service, username, uuid, reason, silent
+                        )
+                        for service in self._services
+                    ]
+                )
+            )[1]:
+                raise ExceptionGroup(
+                    errors.SynchronizationError.GROUP_MESSAGE, exceptions
+                )
+
+            with self._access_state(silent):
+                user = self._state["users"][username]
+                user["has_active_plan"] = True
+                user["synced"] = True
+                with suppress(KeyError):
+                    del user["reason"]
+
+        finally:
+            if process_lock:
+                with self._access_state(silent):
+                    process_lock.release()
+                async_lock.release()
 
     async def _delete_user(
-        self, username: str, reason: Reason | None = None, silent: bool | None = None
+        self,
+        username: str,
+        reason: ManagerReason | None = None,
+        permanently: bool | None = None,
+        silent: bool | None = None,
     ) -> None:
-        if exceptions := (
-            await gather(
-                [
-                    self._delete_user_by_service(service, username, reason, silent)
-                    for service in self._services
-                ]
-            )
-        )[1]:
-            raise ExceptionGroup(errors.SynchronizationError.GROUP_MESSAGE, exceptions)
+        process_lock = self._get_process_lock(username, silent)
+        async_lock = process_lock and self._get_async_lock(username)
 
-    async def _sync(self, *, silent: bool | None = None) -> bool:
+        try:
+            if process_lock:
+                await async_lock.acquire()
+                with self._access_state(silent):
+                    process_lock.acquire()
+
+            if exceptions := (
+                await gather(
+                    [
+                        self._delete_user_by_service(service, username, reason, silent)
+                        for service in self._services
+                    ]
+                )
+            )[1]:
+                raise ExceptionGroup(
+                    errors.SynchronizationError.GROUP_MESSAGE, exceptions
+                )
+
+            with self._access_state(silent):
+                if permanently:
+                    for dic in (
+                        self._state["users"],
+                        self._state["reasons"],
+                        Manager._async_locks,
+                    ):
+                        with suppress(KeyError):
+                            del dic[username]
+                else:
+                    user = self._state["users"][username]
+                    user["has_active_plan"] = False
+                    user["synced"] = True
+
+        finally:
+            if process_lock:
+                with self._access_state(silent):
+                    process_lock.release()
+                async_lock.release()
+
+    async def _sync(self) -> bool:
         synced = False
         current_usernames = self.usernames
+        with self._access_state():
+            users = self._state["users"]
+            reasons = self._state["reasons"]
 
-        for username in list(self._users):
-            if username not in current_usernames:
-                # User is deleted
-                await self._delete_user(username, Reason.SYNCHRONIZATION, silent)
-                del self._users[username]
-                synced = True
+            for username in list(users.keys()):
+                if username not in current_usernames:
+                    # User is deleted
+                    await self._delete_user(
+                        username, ManagerReason.SYNCHRONIZATION, permanently=True
+                    )
+                    synced = True
 
-        for username in current_usernames:
-            method = args = None
-            has_active_plan = self.has_active_plan(username)
-            try:
-                # User is existed
-                had_active_plan = self._users[username]
-                if had_active_plan:
-                    if not has_active_plan:
-                        if not self.activate_reserved_plan(username):
-                            method = self._delete_user
-                            args = (Reason.EXPIRED_PLAN,)
-                        else:
-                            synced = True
-                elif has_active_plan:
-                    method = self._add_user
-                    args = (self.get_credentials(username)["uuid"], Reason.UPDATED_PLAN)
-                elif self.activate_reserved_plan(username):
-                    method = self._add_user
-                    args = (
-                        self.get_credentials(username)["uuid"],
-                        Reason.RESERVED_PLAN,
-                    )
-            except KeyError:
-                # User is added
-                if has_active_plan:
-                    method = self._add_user
-                    args = (
-                        self.get_credentials(username)["uuid"],
-                        Reason.SYNCHRONIZATION,
-                    )
-                elif self.activate_reserved_plan(username):
-                    method = self._add_user
-                    args = (
-                        self.get_credentials(username)["uuid"],
-                        Reason.RESERVED_PLAN,
-                    )
+            for username in current_usernames:
+                method = args = None
+                has_active_plan = self.has_active_plan(username)
+                user = users.get(username, None)
+                if user and user["synced"]:
+                    # User is existed
+                    had_active_plan = user["has_active_plan"]
+                    if had_active_plan:
+                        if not has_active_plan:
+                            if not self.activate_reserved_plan(username):
+                                method = self._delete_user
+                                args = (ManagerReason.EXPIRED_PLAN,)
+                            else:
+                                synced = True
+                    elif has_active_plan:
+                        method = self._add_user
+                        args = (
+                            self.get_credentials(username)["uuid"],
+                            reasons.get(username, ManagerReason.UPDATED_PLAN),
+                        )
+                    elif self.activate_reserved_plan(username):
+                        reasons[username] = ManagerReason.RESERVED_PLAN
+                        method = self._add_user
+                        args = (
+                            self.get_credentials(username)["uuid"],
+                            ManagerReason.RESERVED_PLAN,
+                        )
+                else:
+                    # User is added
+                    if has_active_plan:
+                        method = self._add_user
+                        args = (
+                            self.get_credentials(username)["uuid"],
+                            reasons.get(username, ManagerReason.SYNCHRONIZATION),
+                        )
+                    elif self.activate_reserved_plan(username):
+                        reasons[username] = ManagerReason.RESERVED_PLAN
+                        method = self._add_user
+                        args = (
+                            self.get_credentials(username)["uuid"],
+                            ManagerReason.RESERVED_PLAN,
+                        )
 
-            if method:
-                await method(username, *args, silent)
-                self._users[username] = has_active_plan
-                synced = True
+                if method:
+                    await method(username, *args)
+                    synced = True
 
         if synced:
             self.generate_list()
@@ -218,12 +425,12 @@ class Manager(Users):
         username = credentials["username"]
         error = None
         try:
-            await self._add_user(**credentials)
+            await self._add_user(**credentials, silent=True)
         except ExceptionGroup as _error:
             if not force:
                 super().delete_user(username)
                 with suppress(Exception):
-                    await self._delete_user(username)
+                    await self._delete_user(username, permanently=True, silent=True)
                 logger.error(f"Failed to create user '{username}'")
                 raise _error
             error = errors.SynchronizationError(
@@ -265,11 +472,11 @@ class Manager(Users):
 
         error = None
         try:
-            await self._delete_user(username)
+            await self._delete_user(username, permanently=True, silent=True)
         except ExceptionGroup as _error:
             if not force:
                 with suppress(Exception):
-                    await self._add_user(**self.get_credentials(username))
+                    await self._add_user(**self.get_credentials(username), silent=True)
                 logger.error(f"Failed to delete user '{username}'")
                 raise _error
             error = errors.SynchronizationError(
@@ -356,12 +563,14 @@ class Manager(Users):
         try:
             if had_active_plan:
                 if not has_active_plan:
-                    await self._delete_user(username, Reason.EXPIRED_PLAN, silent=True)
+                    await self._delete_user(
+                        username, ManagerReason.EXPIRED_PLAN, silent=True
+                    )
                     reflected = True
             elif has_active_plan:
                 await self._add_user(
                     *self.get_credentials(username).values(),
-                    Reason.UPDATED_PLAN,
+                    ManagerReason.UPDATED_PLAN,
                     silent=True,
                 )
                 reflected = True
