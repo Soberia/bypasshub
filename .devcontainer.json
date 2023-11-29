@@ -20,6 +20,9 @@
 		"vscode": {
 			"settings": {
 				"terminal.integrated.defaultProfile.linux": "bash",
+				"python.analysis.diagnosticSeverityOverrides": {
+					"reportImportCycles": "none"
+				},
 				"[python]": {
 					"editor.defaultFormatter": "charliermarsh.ruff"
 				},
