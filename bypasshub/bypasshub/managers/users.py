@@ -16,19 +16,13 @@ from ..config import config
 from ..database import Database
 from ..constants import PlanUpdateAction
 from ..utils import current_time, convert_time, convert_size
-from ..types import (
-    Credentials,
-    Plan,
-    Traffic,
-    ReservedPlan,
-    Param,
-    Return,
-)
+from ..types import Credentials, Plan, Traffic, ReservedPlan
 
 USERNAME_MIN_LENGTH = 1
 USERNAME_MAX_LENGTH = 64
-username_pattern = compile(r"\w+$")  # Letters and numbers plus underscore
+
 temp_path = Path(config["main"]["temp_path"])
+username_pattern = compile(r"\w+$")  # Letters and numbers plus underscore
 logger = logging.getLogger(__name__)
 
 
@@ -48,13 +42,11 @@ class Users:
         self.close()
 
     @staticmethod
-    def _validate_username(method: Callable[Param, Return]) -> Callable[Param, Return]:
+    def _validate_username[**P, R](method: Callable[P, R]) -> Callable[P, R]:
         """Validates the `username` positional parameter of the passed method."""
 
         @functools.wraps(method)
-        def wrapper(
-            self: Self, username: str, *args: Param.args, **kwargs: Param.kwargs
-        ) -> Return:
+        def wrapper(self: Self, username: str, *args: P.args, **kwargs: P.kwargs) -> R:
             return method(self, self.validate_username(username), *args, **kwargs)
 
         return wrapper

@@ -37,7 +37,7 @@ class Database:
         return database.connection
 
     def __init__(self) -> None:
-        self.connection = sqlite3.connect(database_path)
+        self.connection = sqlite3.connect(database_path, autocommit=False)
         self.connection.row_factory = lambda cursor, row: {
             key: value
             for key, value in zip([column[0] for column in cursor.description], row)
@@ -53,7 +53,6 @@ class Database:
         self.connection.execute("PRAGMA foreign_keys=ON")
         self.connection.executescript(
             """
-            BEGIN;
             CREATE TABLE IF NOT EXISTS users (
                 username VARCHAR(64),
                 uuid TEXT UNIQUE,
@@ -87,9 +86,9 @@ class Database:
                 plan_extra_traffic BIGINT, /* in bytes */
                 FOREIGN KEY (username) REFERENCES users (username) ON DELETE CASCADE
             );
-            COMMIT;
             """
         )
+        self.connection.commit()
 
     @staticmethod
     def dump(path: PathLike | None = None) -> DatabaseSchema:

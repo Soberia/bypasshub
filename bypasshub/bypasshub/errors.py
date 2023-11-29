@@ -143,7 +143,7 @@ class InvalidUsernameError(BaseError):
 
     def __init__(self, username: str = "", **kwargs) -> None:
         super().__init__(
-            f"Username {username and f''''{username}' '''}is not valid",
+            f"Username {username and f"'{username}' "}is not valid",
             1,
             HTTP_400_BAD_REQUEST,
             **kwargs,
@@ -167,7 +167,7 @@ class UserExistError(BaseError):
 
     def __init__(self, username: str = "", **kwargs) -> None:
         super().__init__(
-            f"User {username and f''''{username}' '''}already exists",
+            f"User {username and f"'{username}' "}already exists",
             3,
             HTTP_400_BAD_REQUEST,
             **kwargs,
@@ -179,7 +179,7 @@ class UserNotExistError(BaseError):
 
     def __init__(self, username: str = "", **kwargs) -> None:
         super().__init__(
-            f"User {username and f''''{username}' '''}does not exist",
+            f"User {username and f"'{username}' "}does not exist",
             4,
             HTTP_400_BAD_REQUEST,
             **kwargs,
@@ -223,7 +223,7 @@ class NoTrafficLimitError(BaseError):
 
     def __init__(self, username: str = "", **kwargs) -> None:
         super().__init__(
-            f"Cannot add extra traffic {username and f'''for the user '{username}' '''}"
+            f"Cannot add extra traffic {username and f"for the user '{username}' "}"
             "when plan has no traffic limit",
             9,
             HTTP_400_BAD_REQUEST,
@@ -285,7 +285,7 @@ class NoActivePlanError(BaseError):
 
     def __init__(self, username: str = "", **kwargs) -> None:
         super().__init__(
-            f"User {username and f''''{username}' '''}does not have an active plan",
+            f"User {username and f"'{username}' "}does not have an active plan",
             13,
             HTTP_400_BAD_REQUEST,
             **kwargs,

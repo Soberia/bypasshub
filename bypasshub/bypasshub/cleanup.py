@@ -76,9 +76,9 @@ class Cleanup:
                     await asyncio.gather(*[callback() for callback in async_callbacks])
 
                 logger.debug(
-                    "The scheduled tasks are finished successfully{}".format(
+                    f"The scheduled tasks are finished successfully{
                         "" if self._is_main_process else f" (in '{self._process_name}')"
-                    )
+                    }"
                 )
 
             self._is_cleaning = False

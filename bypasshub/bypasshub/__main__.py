@@ -23,8 +23,7 @@ async def main() -> None:
 
 
 def run() -> NoReturn:
-    with asyncio.Runner(loop_factory=create_event_loop) as runner:
-        runner.run(main())
+    asyncio.run(main(), loop_factory=create_event_loop)
 
 
 if __name__ == "__main__":

@@ -1,11 +1,12 @@
 from threading import Lock
-from typing import ParamSpec, TypeVar, TypedDict, Literal, NotRequired, Any
-from typing_extensions import TypedDict  # TODO: Should be removed in Python 3.12
+from typing import TypedDict, Literal, NotRequired, Any, TYPE_CHECKING
 
 from . import constants
 
-Param = ParamSpec("Param")
-Return = TypeVar("Return")
+if TYPE_CHECKING:
+    from .managers import Xray, OpenConnect
+
+type Service = Xray | OpenConnect
 
 
 class _ConfigMain(TypedDict):

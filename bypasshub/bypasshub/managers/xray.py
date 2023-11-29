@@ -22,9 +22,9 @@ from xray_rpc.app.proxyman.command.command_pb2 import (
 
 from .base import BaseService
 from .. import errors
+from ..types import Traffic
 from ..config import config
 from ..constants import XrayService
-from ..types import Param, Return, Traffic
 
 timeout = config["main"]["service_timeout"]
 domain = config["environment"]["domain"]
@@ -81,13 +81,13 @@ class Xray(BaseService):
     async def __aexit__(self, *exception) -> None:
         await self.close()
 
-    def _exception_handler(
-        method: Callable[Param, Awaitable[Return]]
-    ) -> Callable[Param, Awaitable[Return]]:
+    def _exception_handler[**P, R](
+        method: Callable[P, Awaitable[R]]
+    ) -> Callable[P, Awaitable[R]]:
         """Handles the common exceptions for the passed method."""
 
         @functools.wraps(method)
-        async def wrapper(*args: Param.args, **kwargs: Param.kwargs) -> Return:
+        async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
             try:
                 return await method(*args, **kwargs)
             except grpc.aio.AioRpcError as error:

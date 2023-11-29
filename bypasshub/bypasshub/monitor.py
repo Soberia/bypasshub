@@ -5,11 +5,11 @@ from typing import Literal
 from collections.abc import Coroutine
 
 from . import errors
+from .types import Service
 from .config import config
 from .managers import Manager, Xray
 from .utils import gather, convert_time
 from .constants import ServiceStatus, ManagerReason
-from .managers.manager import Service
 
 TASK_NAME_PREFIX = "monitor"
 TASK_GROUP_MESSAGE = "User Monitor Task Group"

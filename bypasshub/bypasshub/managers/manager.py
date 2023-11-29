@@ -14,10 +14,8 @@ from .openconnect import OpenConnect
 from .. import errors
 from ..utils import gather
 from ..config import config
-from ..types import Credentials, ManagerState
 from ..constants import ServiceState, ManagerReason
-
-Service = Xray | OpenConnect
+from ..types import Credentials, ManagerState, Service
 
 manage_xray = config["main"]["manage_xray"]
 manage_openconnect = config["main"]["manage_openconnect"]

@@ -72,12 +72,9 @@ class ArgumentParser(argparse.ArgumentParser):
             # Only keeping the last `metavar`
             if action.option_strings and action.nargs != 0:
                 formatted = formatted.replace(
-                    (
-                        " "
-                        + self._format_args(
+                    f" {self._format_args(
                             action, self._get_default_metavar_for_optional(action)
-                        )
-                    ),
+                    )}",
                     "",
                     len(action.option_strings) - 1,
                 )

@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import multiprocessing
 
 from . import __version__
 from .utils import Process
@@ -22,6 +23,7 @@ async def run() -> None:
     with Users() as users:
         users.generate_list()
 
+    multiprocessing.set_start_method("fork", force=True)
     Process(target=api, daemon=True, name=f"{__package__}_api").start()
 
     cleanup = Cleanup()

@@ -1,6 +1,6 @@
 ARG XRAY_VERSION=1.8.3
 
-FROM python:slim AS packages
+FROM python:3.12-slim AS packages
 ARG XRAY_VERSION
 COPY . /usr/local/src/bypasshub/bypasshub/
 SHELL ["bash", "-c"]
@@ -38,7 +38,7 @@ RUN apt-get update && \
     pip install .; \
     mv $package /usr/local/lib/python*/site-packages;
 
-FROM python:slim
+FROM python:3.12-slim
 COPY --from=packages /usr/local/lib/ /usr/local/lib/
 COPY --from=packages /usr/local/bin/bypasshub /usr/local/bin/bypasshub
 RUN useradd --create-home --gid www-data bypasshub
