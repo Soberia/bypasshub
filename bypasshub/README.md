@@ -37,6 +37,10 @@ To use the RESTful API to manage the users, enable the [`ENABLE_API`](../README.
 > **Note**  
 > HTTP 404 error will be returned as response for the authentication failures.
 
+# 🔧 Configuration
+
+Most of the `config.toml` file parameters can be modified while some of them will be replaced by the environment variables provided with the global `.env` file.
+
 # 🔨 Development
 
 The development environment is leveraged by [VSCode's Dev Containers](https://code.visualstudio.com/docs/devcontainers/containers).
