@@ -1,4 +1,4 @@
-ARG VERSION=1.8.3
+ARG VERSION=1.8.6
 
 FROM ubuntu:rolling
 ARG VERSION
