@@ -29,7 +29,7 @@ class Process(multiprocessing.Process):
                         runner.run(self._target(*self._args, **self._kwargs))
                 else:
                     self._target(*self._args, **self._kwargs)
-        except:
+        except BaseException:
             uncaught_exception_handler(*sys.exc_info())
 
 
