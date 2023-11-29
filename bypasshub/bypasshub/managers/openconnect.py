@@ -12,6 +12,8 @@ from ..types import Traffic
 from ..config import config
 from ..constants import OpenConnectService
 
+RETRY_DELAY = 0.01  # seconds
+
 timeout = config["main"]["service_timeout"]
 broker_socket_path = Path(config["main"]["occtl_broker_socket_path"])
 logger = logging.getLogger(__name__)
@@ -56,7 +58,7 @@ class OpenConnect(BaseService):
                             broker_socket_path
                         )
                     except errors.UNIX_SOCKET_FAILURE:
-                        await asyncio.sleep(0.1)
+                        await asyncio.sleep(RETRY_DELAY)
                     else:
                         break
 
