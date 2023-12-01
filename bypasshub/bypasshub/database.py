@@ -7,8 +7,8 @@ from pathlib import Path
 import orjson
 
 from .config import config
-from .utils import current_time
 from .types import DatabaseSchema
+from .utils import current_time, convert_size
 
 backup_interval = config["database"]["backup_interval"]
 database_path = Path(config["database"]["path"])
@@ -51,7 +51,7 @@ class Database:
         """Creates the database and its required tables."""
         autocommit = self.connection.autocommit
         if not autocommit:
-            # It's not possible to enable the WAL mode during a transaction 
+            # It's not possible to enable the WAL mode within a transaction
             self.connection.autocommit = True
         self.connection.execute("PRAGMA journal_mode=WAL")
         self.connection.autocommit = autocommit
@@ -97,6 +97,18 @@ class Database:
         self.connection.commit()
 
     @staticmethod
+    def size(database: sqlite3.Connection) -> int:
+        """Returns the database size in bytes."""
+        result = database.execute(
+            """
+            SELECT page_count * page_size as size
+            FROM pragma_page_count(), pragma_page_size()
+            """
+        ).fetchone()
+
+        return result["size" if type(result) is dict else 0]
+
+    @staticmethod
     def dump(path: PathLike | None = None) -> DatabaseSchema:
         """Returns the current state of the database as a dictionary.
 
@@ -136,14 +148,31 @@ class Database:
         if not backup_dir.exists():
             backup_dir.mkdir(parents=True, exist_ok=True)
 
+        backup_name = f"{database_path.name}{suffix}"
         with sqlite3.connect(
-            backup_dir.joinpath(f"{database_path.name}{suffix}")
+            backup_dir.joinpath(backup_name),
+            # It's not possible to perform `VACUUM`
+            # command within a transaction
+            autocommit=True,
         ) as db:
+            # It seems `backup()` method (and then `VACUUM` command)
+            # do not blocks the original database's transactions so
+            # it's favored over `VACUUM INTO` command.
             _db = Database()
             _db.backup(db)
             _db.close()
+            previous_size = Database.size(db)
+            db.execute("VACUUM")
+            reduced = previous_size - Database.size(db)
 
         db.close()
+        logger.debug(
+            f"The database backup file '{backup_name}' is created{
+                f" (file size reduced by '{convert_size(reduced)}')"
+                if reduced > 0
+                else ""
+            }"
+        )
 
     @staticmethod
     def start_backup() -> asyncio.Task | None:
