@@ -84,4 +84,4 @@ CMD \
         fi; \
     done; \
 
-    /usr/sbin/named -g -c /tmp/bind/named.conf
+    /usr/sbin/named -f -c /tmp/bind/named.conf

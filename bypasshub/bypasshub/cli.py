@@ -530,8 +530,11 @@ class CLI:
         self._arguments = self._parser.parse_args()
         if self._arguments.debug:
             modify_console_logger(True)
-            modify_handler("console", traceback=True, level=logging.DEBUG)
+            modify_handler(
+                "console", level=logging.DEBUG, traceback=True, console_timestamp=False
+            )
         else:
+            modify_handler("console", console_timestamp=False)
             # Temporarily avoiding to store the traceback
             modify_handler("storage", traceback=False)
 
@@ -540,6 +543,7 @@ class CLI:
             await self._exec(command)
             executed = True
 
+        modify_handler("console", console_timestamp=True)
         if not self._arguments.debug:
             modify_handler("storage", traceback=True)
 

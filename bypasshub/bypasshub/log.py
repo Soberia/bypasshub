@@ -34,10 +34,37 @@ class _StorageFormatter(logging.Formatter):
 class _ConsoleFormatter(ColourizedFormatter):
     """Custom log formatter to control the traceback."""
 
+    def __init__(
+        self,
+        fmt: str | None = None,
+        datefmt: str | None = logging.Formatter.default_time_format,
+        trim_level: bool = True,
+        *args,
+        **kwargs,
+    ) -> None:
+        super().__init__(fmt=fmt, datefmt=datefmt, *args, **kwargs)
+        self._trim_level = trim_level
+
     def formatException(self, *args) -> str:
         return (
             super().formatException(*args) if config["log"]["stdout_traceback"] else ""
         )
+
+    def formatMessage(self, record: logging.LogRecord) -> str:
+        if self._trim_level:
+            # Preventing the padding space to be added
+            # to the log level by the inherited method
+            levelname = record.levelname
+            if self.use_colors:
+                levelname = self.color_level_name(levelname, record.levelno)
+                if "color_message" in record.__dict__:
+                    record.msg = record.__dict__["color_message"]
+                    record.__dict__["message"] = record.getMessage()
+
+            record.__dict__["levelprefix"] = levelname
+            return logging.Formatter.formatMessage(self, record)
+
+        return super().formatMessage(record)
 
 
 def setup() -> None:
@@ -117,23 +144,42 @@ def modify_console_logger(enable: bool) -> None:
 def modify_handler(
     handler: Literal["console", "storage"],
     *,
-    traceback: bool | None = None,
     level: int | str | None = None,
+    traceback: bool | None = None,
+    console_timestamp: bool | None = None,
 ) -> None:
-    """Modifies the log level or traceback status for the specified handler."""
-    if traceback is not None or level is not None:
-        for logger_name in _config["loggers"].keys():
-            for _handler in logging.getLogger(logger_name).handlers:
-                if _handler.get_name().startswith(handler):
-                    if handler == "console":
+    """Modifies the specified handler.
+
+    Args:
+        `level`: The log level.
+        `traceback`: Whether to show the traceback.
+        `console_timestamp`: Whether to print timestamps for the console handler.
+    """
+    for logger_name in _config["loggers"].keys():
+        for _handler in logging.getLogger(logger_name).handlers:
+            if _handler.get_name().startswith(handler):
+                if handler == "console":
+                    if traceback is not None:
                         config["log"]["stdout_traceback"] = traceback
-                    else:
-                        _handler.formatter._traceback = traceback
+                    if console_timestamp is not None:
+                        format = _config["formatters"]["console"]["format"]
+                        if console_timestamp is False:
+                            format = (
+                                format.replace("%(asctime)s", "")
+                                .replace("[%(levelprefix)s]", "%(levelprefix)s")
+                                .strip()
+                            )
 
-                    if level:
-                        _handler.setLevel(level)
+                        _handler.setFormatter(
+                            _ConsoleFormatter(format, trim_level=console_timestamp)
+                        )
+                elif traceback is not None:
+                    _handler.formatter._traceback = traceback
 
-                    break
+                if level is not None:
+                    _handler.setLevel(level)
+
+                break
 
 
 _config = {
@@ -142,7 +188,7 @@ _config = {
     "formatters": {
         "console": {
             "()": _ConsoleFormatter,
-            "format": "%(levelprefix)s [%(name)s] %(message)s",
+            "format": "%(asctime)s [%(levelprefix)s] [%(name)s] %(message)s",
         },
         "storage": {
             "()": _StorageFormatter,
