@@ -13,6 +13,15 @@ CMD trap 'exit' TERM INT; \
     install -d -m 0755 /tmp/bind/{cache,keys}; \
     cp /etc/bind/named.conf /tmp/bind/named.conf; \
     cp /etc/bind/db.forward /tmp/bind/db.forward; \
+    if [ ! -f /tmp/bind/domain ]; then \
+        echo $DOMAIN > /tmp/bind/domain; \
+    elif [[ $(< /tmp/bind/domain) != $DOMAIN ]]; then \
+        # The domain has been changed.
+        # Removing previously generated signed zones.
+        rm /tmp/bind/db.forward.* >/dev/null 2>&1; \
+        rm /tmp/bind/keys/* >/dev/null 2>&1; \
+        echo $DOMAIN > /tmp/bind/domain; \
+    fi; \
 
     # Configuring the firewall
     sudo ip6tables -P INPUT DROP; \
@@ -28,21 +37,17 @@ CMD trap 'exit' TERM INT; \
 
     if [[ $ENABLE_AUTHORITATIVE_ZONE == 'true' ]]; then \
         if [[ $ENABLE_DNSSEC == 'true' ]]; then \
-            if [ ! -f /tmp/bind/keys/$DOMAIN ]; then \
-                # Removing previously generated signed zones
-                rm /tmp/bind/db.forward.* >/dev/null 2>&1; \
-                rm /tmp/bind/keys/* >/dev/null 2>&1; \
-                touch /tmp/bind/keys/$DOMAIN; \
+            if [ -z "$(ls -A /tmp/bind/keys)" ]; then \
                 dnssec-keygen -K /tmp/bind/keys -a ECDSAP256SHA256 -3 $DOMAIN; \
                 dnssec-keygen -K /tmp/bind/keys -a ECDSAP256SHA256 -3 -f KSK $DOMAIN; \
-            # Daily resigning the NSEC3 records with
-            # a new salt to prevent domain walking
+            fi; \
+            # Periodically resigning the NSEC3 records
+            # with a new salt to prevent domain walking
             while true; do \
                 sleep 86400; \
                 rndc signing -nsec3param 1 0 10 \
                     $(head /dev/urandom | sha1sum | head -c16) $DOMAIN; \
             done & \
-            fi; \
         else \
             # Disabling DNSSEC signing
             sed -i "/#? dnssec/d" /tmp/bind/named.conf; \
