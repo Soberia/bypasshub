@@ -22,10 +22,17 @@ RUN apt-get update && \
     apt-get clean; \
     #
     useradd --gid proxy xray; \
-    echo 'xray ALL=(root) NOPASSWD: /usr/sbin/iptables, /usr/sbin/ip6tables' >> /etc/sudoers;
+    echo 'xray ALL=(root) NOPASSWD:/usr/sbin/iptables, /usr/sbin/ip6tables' >> /etc/sudoers;
 
 USER xray
-CMD \
+CMD trap 'exit' TERM INT; \
+    install -d -m 0755 /tmp/xray; \
+    rm -f /tmp/xray/*.sock >/dev/null 2>&1; \
+    cp -f /usr/local/etc/xray/xray.json /tmp/xray/xray.json; \
+    if [[ $ENABLE_XRAY_SUBSCRIPTION == 'true' ]]; then \
+        cp -f /usr/local/etc/xray/confs/cdn-ips /tmp/xray/cdn-ips 2>/dev/null; \
+    fi; \
+
     # Configuring the firewall and rejecting clients
     # access to the host and container's network
     for ip in ip ip6; do \
@@ -48,13 +55,6 @@ CMD \
         sudo ip6tables -A OUTPUT -d $BIND_IPV6 -p tcp --dport 53 -j ACCEPT; \
         sudo ip6tables -A OUTPUT -d $NGINX_IPV6 -p tcp --dport $TLS_PORT -j ACCEPT; \
         sudo ip6tables -A OUTPUT -d $IPV6_SUBNET,fd00::/8 -j DROP; \
-    fi; \
-
-    install -d -m 0755 /tmp/xray; \
-    rm -f /tmp/xray/*.sock >/dev/null 2>&1; \
-    cp -f /usr/local/etc/xray/xray.json /tmp/xray/xray.json; \
-    if [[ $ENABLE_XRAY_SUBSCRIPTION == 'true' ]]; then \
-        cp -f /usr/local/etc/xray/confs/cdn-ips /tmp/xray/cdn-ips 2>/dev/null; \
     fi; \
 
     # Injecting the environment variables
@@ -96,6 +96,6 @@ CMD \
         unset users user shared json clients_tcp clients_ws; \
     fi; \
 
-    /usr/local/bin/xray run \
+    exec /usr/local/bin/xray run \
         -config /tmp/xray/xray.json \
         -confdir /usr/local/etc/xray/confs

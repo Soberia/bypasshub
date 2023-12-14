@@ -35,7 +35,11 @@ RUN apt-get update && \
         --shell /usr/sbin/nologin --uid 102 ocserv;
 
 SHELL ["bash", "-c"]
-CMD \
+CMD trap '[ -z $pid ] && exit || kill -TERM -$pid' TERM INT; \
+    install -d -m 0755 --owner ocserv --group ocserv /tmp/ocserv; \
+    rm -f /tmp/ocserv/ocserv.sock.* >/dev/null 2>&1; \
+    cp /etc/ocserv/ocserv.conf /tmp/ocserv/ocserv.conf; \
+
     # Configuring the firewall and rejecting clients
     # access to the host and container's network
     iptables -P INPUT DROP; \
@@ -72,13 +76,8 @@ CMD \
         ip6tables -A FORWARD -s $OCSERV_IPV6_SUBNET -o eth0 -j ACCEPT; \
     fi; \
 
-    install -d -m 0755 --owner ocserv --group ocserv /tmp/ocserv; \
-    rm -f /tmp/ocserv/ocserv.sock.* >/dev/null 2>&1; \
-    cp /etc/ocserv/ocserv.conf /tmp/ocserv/ocserv.conf; \
-
-    CAMOUFLAGE=$([ -z $OCSERV_KEY ] && echo false || echo true); \
-
     # Injecting the environment variables
+    CAMOUFLAGE=$([ -z "$OCSERV_KEY" ] && echo false || echo true); \
     declare -a envs=( \
         'DOMAIN' \
         'OCSERV_KEY' \
@@ -144,4 +143,14 @@ CMD \
         unset users user; \
     fi; \
 
-    ocserv --foreground --config /tmp/ocserv/ocserv.conf
+    # `ocserv` doesn't properly propagate the `SIGTERM` signal
+    # to the worker processes.
+    # See https://gitlab.com/openconnect/ocserv/-/issues/563
+    #
+    # TODO: This bug will be fixed in `ocserv` version 1.2.3,
+    #       There will be no need to manually handling the propagation.
+    ocserv --foreground --config /tmp/ocserv/ocserv.conf & \
+    pid=$!; \
+    while kill -0 $pid >/dev/null 2>&1; do \
+        wait $pid; \
+    done

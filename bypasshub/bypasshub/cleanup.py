@@ -65,8 +65,18 @@ class Cleanup:
 
                 # Waiting for the child processes to terminate
                 if self._is_main_process:
+                    processes = []
                     for process in multiprocessing.active_children():
                         if process.name.startswith(__package__) and process.is_alive():
+                            processes.append(process)
+                            # The `SIGINT` signals initiated with Ctrl+C from the
+                            # terminal will be propagated to all the child processes
+                            # by default. The `SIGTERM` signal should be propagated.
+                            if signal != SIGINT:
+                                os.kill(process.pid, signal)
+
+                    for process in processes:
+                        if process.is_alive():
                             process.join()
 
                 if callbacks:

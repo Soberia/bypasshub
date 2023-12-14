@@ -22,9 +22,10 @@ RUN apt-get update && \
 
 USER nginx
 SHELL ["bash", "-c"]
-CMD \
-    # Without this, default entrypoint scripts won't run
-    /docker-entrypoint.sh nginx -v; \
+CMD trap 'exit' TERM INT; \
+    install -d -m 0755 /tmp/nginx/{cache,log}; \
+    rm -f /tmp/nginx/*.sock >/dev/null 2>&1; \
+    cp /etc/nginx/nginx.conf /tmp/nginx/nginx.conf; \
 
     # Configuring the firewall
     sudo ip6tables -P INPUT DROP; \
@@ -45,16 +46,8 @@ CMD \
         sudo ip6tables -A FORWARD -d $IPV6_SUBNET -j ACCEPT; \
     fi; \
 
-    install -d -m 0755 /tmp/nginx/{cache,log}; \
-    rm -f /tmp/nginx/*.sock >/dev/null 2>&1; \
-    cp /etc/nginx/nginx.conf /tmp/nginx/nginx.conf; \
-
-    # Finding local DNS resolver IP address
-    DNS_RESOLVER=$(sed -nr 's/.*(127.*)/\1/p' /etc/resolv.conf); \
-
     # Removing disabled profiles
     declare -a profiles=('xray' 'ocserv'); \
-    [[ $ENABLE_AUTHORITATIVE_ZONE != 'true' ]] && profiles+=('bind'); \
     for profile in "${profiles[@]}"; do \
         if [[ $COMPOSE_PROFILES != *"$profile"* ]]; then \
             sed -i -e "/#! $profile/,/}/d" -e "/#? $profile/d" /tmp/nginx/nginx.conf; \
@@ -62,6 +55,7 @@ CMD \
     done; \
 
     # Injecting the environment variables
+    DNS_RESOLVER=$(sed -nr 's/.*(127.*)/\1/p' /etc/resolv.conf); \
     declare -a envs=( \
         'DOMAIN' \
         'XRAY_SNI' \
@@ -104,5 +98,8 @@ CMD \
             sleep $sleep_time; \
         done & \
     fi; \
+
+    # Triggering the default entrypoint script
+    /docker-entrypoint.sh nginx -v &>/dev/null; \
 
     exec nginx -c /tmp/nginx/nginx.conf -g 'daemon off;'

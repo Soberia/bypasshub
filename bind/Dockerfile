@@ -8,8 +8,11 @@ RUN apt-get update && \
 
 USER bind
 SHELL ["bash", "-c"]
-CMD \
+CMD trap 'exit' TERM INT; \
     certbot_activated=$([[ $COMPOSE_PROFILES == *"certbot"* ]] && echo true || echo false); \
+    install -d -m 0755 /tmp/bind/{cache,keys}; \
+    cp /etc/bind/named.conf /tmp/bind/named.conf; \
+    cp /etc/bind/db.forward /tmp/bind/db.forward; \
 
     # Configuring the firewall
     sudo ip6tables -P INPUT DROP; \
@@ -22,10 +25,6 @@ CMD \
         sudo ip6tables -A INPUT -i eth0 $source -p tcp --dport 53 -j ACCEPT; \
         sudo ip6tables -A INPUT -i eth0 $source -p udp --dport 53 -j ACCEPT; \
     fi; \
-
-    install -d -m 0755 /tmp/bind/{cache,keys}; \
-    cp /etc/bind/named.conf /tmp/bind/named.conf; \
-    cp /etc/bind/db.forward /tmp/bind/db.forward; \
 
     if [[ $ENABLE_AUTHORITATIVE_ZONE == 'true' ]]; then \
         if [[ $ENABLE_DNSSEC == 'true' ]]; then \
@@ -84,4 +83,4 @@ CMD \
         fi; \
     done; \
 
-    /usr/sbin/named -f -c /tmp/bind/named.conf
+    exec /usr/sbin/named -f -c /tmp/bind/named.conf
