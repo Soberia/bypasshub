@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-if [[ $ENABLE_IPV6 != "true" ]]; then
+if [[ $ENABLE_IPV6 != true ]]; then
     exit 0
 fi
 

@@ -37,7 +37,7 @@ CMD trap 'exit' TERM INT; \
     if [[ $COMPOSE_PROFILES == *"ocserv"* ]]; then \
         sudo ip6tables -A INPUT -i eth0 -p udp --dport $OCSERV_DTLS_PORT -j ACCEPT; \
     fi; \
-    if [[ $ENABLE_IPV6 == 'true' ]] && [ ! -z $IPV6_SUBNET ]; then \
+    if [[ $ENABLE_IPV6 == true ]] && [ ! -z $IPV6_SUBNET ]; then \
         if [[ $ENABLE_AUTHORITATIVE_ZONE == 'true' ]]; then \
             sudo ip6tables -A INPUT -i eth0 -p udp --dport 53 -j ACCEPT; \
             sudo ip6tables -A INPUT -i eth0 -p tcp --dport 53 -j ACCEPT; \
@@ -67,7 +67,7 @@ CMD trap 'exit' TERM INT; \
         'DNS_IPV6' \
         'DNS_RESOLVER' \
     ); \
-    if [[ $ENABLE_IPV6 != 'true' || -z $DNS_IPV6 ]]; then \
+    if [[ $ENABLE_IPV6 != true || -z $DNS_IPV6 ]]; then \
         sed -i 's/\[\$DNS_IPV6\]//' /tmp/nginx/nginx.conf; \
     fi; \
     for env in "${envs[@]}"; do \

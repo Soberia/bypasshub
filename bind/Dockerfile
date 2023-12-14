@@ -29,14 +29,14 @@ CMD trap 'exit' TERM INT; \
     sudo ip6tables -A INPUT -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT; \
     sudo ip6tables -A INPUT -i lo -j ACCEPT; \
     sudo ip6tables -A INPUT -i eth0 -p ipv6-icmp -j ACCEPT; \
-    if [[ $ENABLE_IPV6 == 'true' ]] && [[ ! -z $IPV6_SUBNET ]]; then \
+    if [[ $ENABLE_IPV6 == true ]] && [[ ! -z $IPV6_SUBNET ]]; then \
         source=$([[ $certbot_activated == false ]] && echo "-s $IPV6_SUBNET" || echo ''); \
         sudo ip6tables -A INPUT -i eth0 $source -p tcp --dport 53 -j ACCEPT; \
         sudo ip6tables -A INPUT -i eth0 $source -p udp --dport 53 -j ACCEPT; \
     fi; \
 
-    if [[ $ENABLE_AUTHORITATIVE_ZONE == 'true' ]]; then \
-        if [[ $ENABLE_DNSSEC == 'true' ]]; then \
+    if [[ $ENABLE_AUTHORITATIVE_ZONE == true ]]; then \
+        if [[ $ENABLE_DNSSEC == true ]]; then \
             if [ -z "$(ls -A /tmp/bind/keys)" ]; then \
                 dnssec-keygen -K /tmp/bind/keys -a ECDSAP256SHA256 -3 $DOMAIN; \
                 dnssec-keygen -K /tmp/bind/keys -a ECDSAP256SHA256 -3 -f KSK $DOMAIN; \
@@ -81,7 +81,7 @@ CMD trap 'exit' TERM INT; \
         'NGINX_IPV6' \
     ); \
     for env in "${envs[@]}"; do \
-        if [[ $env == *"IPV6"* && ( $ENABLE_IPV6 != 'true' || -z ${!env} ) ]]; then \
+        if [[ $env == *"IPV6"* && ( $ENABLE_IPV6 != true || -z ${!env} ) ]]; then \
             sed -i "/\$$env/d" /tmp/bind/{named.conf,db.forward}; \
         else \
             sed -i "s|\$$env|${!env}|g" /tmp/bind/{named.conf,db.forward}; \
