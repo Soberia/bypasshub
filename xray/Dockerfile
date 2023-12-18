@@ -61,7 +61,7 @@ CMD trap 'exit' TERM INT; \
     sed -i "s|\$DOMAIN|$DOMAIN|g" /tmp/xray/xray.json; \
 
     # Waiting for the users to be generated
-    timeout=5; \
+    timeout=50; \
     current_time=$(date '+%s'); \
     while (( $timeout > 0 )); do \
         if [ -s /tmp/bypasshub/last-generate ] && \
@@ -70,7 +70,7 @@ CMD trap 'exit' TERM INT; \
         fi; \
 
         (( timeout-- )); \
-        sleep 1; \
+        sleep 0.1; \
     done; \
 
     # Injecting the users
