@@ -30,11 +30,9 @@ It's also tried to follow the best practices to honor both security and performa
 
 `bypasshub` just consists of a bunch of `Docker` containers.
 
-`NGINX` role is an entry point for all the incoming connections to limit the attack surface. From there, the incoming connection gets redirected to its destination based on the destination port. For TLS-based connections on TCP ports, the connection is routed based on specified [SNI](https://en.wikipedia.org/wiki/Server_Name_Indication) value and if there is no match, a dummy webpage will be returned instead to mimic a real web server's behavior when confronted with national firewall active probing.
+`NGINX` role is an entry point for all the incoming connections. From there, the incoming connection gets redirected to its destination based on the destination port. For TLS-based connections on TCP ports, the connection is routed based on specified [SNI](https://en.wikipedia.org/wiki/Server_Name_Indication) value and if there is no match, a dummy webpage will be returned instead to mimic a real web server's behavior when confronted with national firewall active probing.
 
-For now, `Xray-core` proxy and `OpenConnect` VPN servers are available to use. It may change if they're not safe anymore or a better candidate becomes available in the future.
-
-All of the `Xray-core` and `OpenConnect` clients are isolated and can't communicate with each other or with other containers on the network with an exception for sending the DNS queries to the `BIND` caching DNS server.
+Currently, `Xray-core` proxy and `OpenConnect` VPN servers are available. The clients of these services are isolated and can't communicate with each other or with other containers on the network with an exception for sending the DNS queries to the `BIND` caching DNS server.
 
 All of the containers run as a non-privileged user except the `OpenConnect`.
 
@@ -142,7 +140,7 @@ See the [user management](bypasshub/README.md) page.
 
 Get the [`Xray-core`](https://github.com/XTLS/Xray-core) and [`OpenConnect`](https://gitlab.com/openconnect/openconnect) clients for your devices.
 
-- For `Xray-core`, in your client, add a subscription with the following URL with user's credentials:
+- For `Xray-core`, in your client, add a subscription with the following URL with the user's credentials:
 
     ```
     https://$DOMAIN:$TLS_PORT/subscription?username=USERNAME&uuid=PASSWORD
@@ -260,7 +258,7 @@ By default, for invalid requests (or authentication failures in the case of `Xra
 
 For `Xray-core` you can place [additional configuration](https://xtls.github.io/Xray-docs-next/config/features/multiple.html) files in the `xray/configs` directory (e.g. to block BitTorrent traffic).
 
-For `OpenConnect`, you can place [user-based configuration](http://ocserv.gitlab.io/www/manual.html) files in the `ocserv/configs` directory (e.g. to give user a static IP address). The name of the config file should correspond to the defined username.
+For `OpenConnect`, you can place [user-based configuration](http://ocserv.gitlab.io/www/manual.html) files in the `ocserv/configs` directory (e.g. to give the user a static IP address). The name of the config file should correspond to the defined username.
 
 ## DNSSEC
 
@@ -386,5 +384,5 @@ Variable                                                              | Type   |
 <span id="NGINX_LOG_PURGE_INTERVAL">NGINX_LOG_PURGE_INTERVAL</span>   | number | The interval in seconds that `NGINX` logs would be cleared. The value of `0`, keeps the logs forever.
 <span id="OCSERV_KEY">OCSERV_KEY</span>                               | string | The optional secret key for masquerading the `OpenConnect` VPN server identity.
 <span id="ENABLE_API">ENABLE_API</span>                               | switch | Enables the [user management API](bypasshub/README.md#-api).
-<span id="ENABLE_API_UI">ENABLE_API_UI</span>                         | switch | Enables the web based UI for interacting with the API.
+<span id="ENABLE_API_UI">ENABLE_API_UI</span>                         | switch | Enables the web-based UI for interacting with the API.
 <span id="API_KEY">API_KEY</span>                                     | string | The secret key for authenticating the API requests.
