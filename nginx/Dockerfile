@@ -14,6 +14,7 @@ RUN apt-get update && \
     make modules;
 
 FROM nginx:mainline
+LABEL org.opencontainers.image.title=NGINX
 COPY --chmod=644 --from=nginx /nginx*/objs/*.so /usr/lib/nginx/modules/
 RUN apt-get update && \
     apt-get install -y --no-install-recommends iptables sudo; \

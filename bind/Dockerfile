@@ -1,4 +1,5 @@
 FROM ubuntu:rolling
+LABEL org.opencontainers.image.title=BIND
 RUN apt-get update && \
     apt-get install -y --no-install-recommends bind9 bind9utils dnsutils iptables sudo && \
     apt-get clean; \

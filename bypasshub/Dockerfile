@@ -39,6 +39,7 @@ RUN apt-get update && \
     mv $package /usr/local/lib/python*/site-packages;
 
 FROM python:3.12-slim
+LABEL org.opencontainers.image.title=BypassHub
 COPY --from=packages /usr/local/lib/ /usr/local/lib/
 COPY --from=packages /usr/local/bin/bypasshub /usr/local/bin/bypasshub
 RUN useradd --create-home --gid www-data bypasshub

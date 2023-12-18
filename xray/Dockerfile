@@ -9,6 +9,7 @@ RUN apt-get update && \
     unzip archive.zip;
 
 FROM ubuntu:rolling
+LABEL org.opencontainers.image.title=Xray-core
 COPY --from=xray --chmod=755 /xray /usr/local/bin/xray
 COPY --from=xray --chmod=644 /geo*.dat /usr/local/share/xray/
 RUN apt-get update && \

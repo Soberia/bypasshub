@@ -1,4 +1,5 @@
 FROM certbot/certbot
+LABEL org.opencontainers.image.title=Certbot
 RUN apk add --no-cache bash
 
 ENTRYPOINT [ ]

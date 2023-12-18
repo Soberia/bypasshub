@@ -22,6 +22,7 @@ RUN apt-get update && \
     make && make install;
 
 FROM ubuntu:rolling
+LABEL org.opencontainers.image.title=OpenConnect
 COPY --chmod=550 *.sh /usr/local/sbin/
 COPY --from=ocserv /usr/local/bin/ /usr/local/bin/
 COPY --from=ocserv /usr/local/sbin/ocserv* /usr/local/sbin/
