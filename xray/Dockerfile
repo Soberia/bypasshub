@@ -1,30 +1,25 @@
 ARG VERSION=1.8.6
 
-FROM ubuntu:rolling
+FROM ubuntu:rolling AS xray
 ARG VERSION
-SHELL ["bash", "-c"]
 RUN apt-get update && \
     apt-get install -y curl unzip; \
-    apt-get install -y --no-install-recommends jq iptables sudo; \
-    #
-    mkdir /tmp/xray && cd /tmp/xray; \
     curl -sSL -o archive.zip \
         "https://github.com/XTLS/Xray-core/releases/download/v$VERSION/Xray-linux-64.zip"; \
-    unzip archive.zip; \
-    install -m 755 xray /usr/local/bin/xray; \
-    install -d /usr/local/share/xray; \
-    install -m 644 geoip.dat /usr/local/share/xray; \
-    install -m 644 geosite.dat /usr/local/share/xray; \
-    rm -r $PWD; \
-    #
-    apt-get --purge -y remove curl unzip && \
-    apt-get -y autoremove; \
+    unzip archive.zip;
+
+FROM ubuntu:rolling
+COPY --from=xray --chmod=755 /xray /usr/local/bin/xray
+COPY --from=xray --chmod=644 /geo*.dat /usr/local/share/xray/
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends jq iptables sudo; \
     apt-get clean; \
     #
     useradd --gid proxy xray; \
     echo 'xray ALL=(root) NOPASSWD:/usr/sbin/iptables, /usr/sbin/ip6tables' >> /etc/sudoers;
 
 USER xray
+SHELL ["bash", "-c"]
 CMD trap 'exit' TERM INT; \
     install -d -m 0755 /tmp/xray; \
     rm -f /tmp/xray/*.sock >/dev/null 2>&1; \
