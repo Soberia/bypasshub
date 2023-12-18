@@ -53,7 +53,7 @@ networks:
         enable_ipv6: ${ENABLE_IPV6:-false}
         ipam:
             config:
-                - subnet: 192.168.100.0/29
+                - subnet: 192.168.100.0/28
                 - subnet: ${IPV6_SUBNET:-::/128}
 
 services:
@@ -65,15 +65,17 @@ services:
             - temp:/tmp
         networks:
             general:
+                ipv4_address: 192.168.100.2
+                ipv6_address: $BYPASSHUB_IPV6
         profiles:
             - default
         environment:
             DOMAIN: $DOMAIN
-ENABLE_API: $ENABLE_API
+            ENABLE_API: $ENABLE_API
             ENABLE_API_UI: $ENABLE_API_UI
             ENABLE_XRAY_CDN: $ENABLE_XRAY_CDN
             ENABLE_XRAY_SUBSCRIPTION: $ENABLE_XRAY_SUBSCRIPTION
-                        API_KEY: $API_KEY
+            API_KEY: $API_KEY
             XRAY_SNI: $XRAY_SNI
             XRAY_CDN_SNI: $XRAY_CDN_SNI
             TLS_PORT: $TLS_PORT
@@ -123,7 +125,7 @@ ENABLE_API: $ENABLE_API
             - temp:/tmp
         networks:
             general:
-                ipv4_address: 192.168.100.6
+                ipv4_address: 192.168.100.3
                 ipv6_address: $BIND_IPV6
         cap_add:
             - NET_ADMIN # for iptables
@@ -152,8 +154,8 @@ ENABLE_API: $ENABLE_API
             - ./certbot/letsencrypt:/etc/letsencrypt
         networks:
             general:
-                ipv4_address: 192.168.100.5
-                ipv6_address: $NGINX_IPV6
+                ipv4_address: 192.168.100.4
+                ipv6_address: $CERTBOT_IPV6
         ports:
             - 80:80
             - 443:443
@@ -178,7 +180,9 @@ ENABLE_API: $ENABLE_API
             - ./certbot/letsencrypt/archive/$DOMAIN:/etc/letsencrypt/archive/$DOMAIN:ro
             - temp:/tmp
         networks:
-            - general
+            general:
+                ipv4_address: 192.168.100.6
+                ipv6_address: $XRAY_IPV6
         cap_add:
             - NET_ADMIN # for iptables
         depends_on:
@@ -188,14 +192,14 @@ ENABLE_API: $ENABLE_API
             - xray
         environment:
             DOMAIN: $DOMAIN
+            TLS_PORT: $TLS_PORT
             ENABLE_XRAY_CDN: $ENABLE_XRAY_CDN
             ENABLE_XRAY_SUBSCRIPTION: $ENABLE_XRAY_SUBSCRIPTION
             ENABLE_IPV6: $ENABLE_IPV6
-            TLS_PORT: $TLS_PORT
             IPV6_SUBNET: $IPV6_SUBNET
-            NGINX_IPV6: $NGINX_IPV6
-            BIND_IPV4: 192.168.100.6
+            BIND_IPV4: 192.168.100.3
             BIND_IPV6: $BIND_IPV6
+            NGINX_IPV6: $NGINX_IPV6
         <<: *common
 
     ocserv:
@@ -207,7 +211,9 @@ ENABLE_API: $ENABLE_API
             - ./certbot/letsencrypt/archive/$DOMAIN:/etc/letsencrypt/archive/$DOMAIN:ro
             - temp:/tmp
         networks:
-            - general
+            general:
+                ipv4_address: 192.168.100.7
+                ipv6_address: $OCSERV_IPV6
         cap_add:
             - NET_ADMIN
             - CAP_MKNOD
@@ -232,8 +238,8 @@ ENABLE_API: $ENABLE_API
             OCSERV_IPV4_SUBNET: $OCSERV_IPV4_SUBNET
             OCSERV_IPV6_SUBNET: $OCSERV_IPV6_SUBNET
             OCSERV_CLIENTS_IPV6_CIDR: $OCSERV_CLIENTS_IPV6_CIDR
-            NGINX_IPV6: $NGINX_IPV6
-            BIND_IPV4: 192.168.100.6
+            BIND_IPV4: 192.168.100.3
             BIND_IPV6: $BIND_IPV6
+            NGINX_IPV6: $NGINX_IPV6
         restart: always
         <<: [*logs, *ulimits]
