@@ -141,16 +141,12 @@ CMD trap '[ -z $pid ] && exit || kill -TERM -$pid' TERM INT; \
     mknod /dev/net/tun c 10 200; \
     chmod 600 /dev/net/tun; \
 
-    # Waiting for the users to be generated
-    timeout=50; \
+    # Waiting for the users list to be generated
     current_time=$(date '+%s'); \
-    while (( $timeout > 0 )); do \
-        if [ -s /tmp/bypasshub/last-generate ] && \
-            (( $(< /tmp/bypasshub/last-generate) >= $current_time )); then \
+    for (( timeout=50; timeout > 0; timeout-- )); do \
+        [ -s /tmp/bypasshub/last-generate ] && \
+            (( $(< /tmp/bypasshub/last-generate) >= $current_time )) && \
             break; \
-        fi; \
-
-        (( timeout-- )); \
         sleep 0.1; \
     done; \
 
