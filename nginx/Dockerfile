@@ -141,6 +141,20 @@ CMD trap 'exit' TERM INT; \
         fi; \
     done & \
 
+    # Waiting for the services to start to avoid
+    # spamming the logs with connection errors
+    for profile in "xray" "ocserv"; do \
+        if [[ $COMPOSE_PROFILES == *"$profile"* ]]; then \
+            for (( timeout=50; timeout > 0; timeout-- )); do \
+                case $profile in \
+                    "xray") [ -S /tmp/xray/api.sock ] && break ;; \
+                    "ocserv") [ -S /tmp/ocserv/ocserv.sock* ] && break ;; \
+                esac; \
+                sleep 0.1; \
+            done; \
+        fi; \
+    done; \
+
     # Triggering the default entrypoint script
     /docker-entrypoint.sh nginx -v &>/dev/null; \
 
