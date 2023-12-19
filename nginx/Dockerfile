@@ -39,7 +39,7 @@ CMD trap 'exit' TERM INT; \
     if [[ $COMPOSE_PROFILES == *"ocserv"* ]]; then \
         sudo ip6tables -A INPUT -i eth0 -p udp --dport $OCSERV_DTLS_PORT -j ACCEPT; \
     fi; \
-    if [[ $ENABLE_IPV6 == true ]] && [ ! -z $IPV6_SUBNET ]; then \
+    if [[ $ENABLE_IPV6 == true ]]; then \
         sudo ip6tables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT; \
         sudo ip6tables -A FORWARD -d $IPV6_SUBNET -j ACCEPT; \
     fi; \

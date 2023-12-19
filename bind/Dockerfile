@@ -30,10 +30,9 @@ CMD trap 'exit' TERM INT; \
     sudo ip6tables -A INPUT -i lo -j ACCEPT; \
     sudo ip6tables -A INPUT -i eth0 -p ipv6-icmp -j ACCEPT; \
     if [[ $ENABLE_IPV6 == true ]]; then \
-        source=$( \
-            [[ $ENABLE_AUTHORITATIVE_ZONE != true && ! -z $IPV6_SUBNET ]] && \
-                echo "-s $IPV6_SUBNET" || \
-                echo ''; \
+        source=$([[ $ENABLE_AUTHORITATIVE_ZONE != true ]] && \
+            echo "-s $IPV6_SUBNET" || \
+            echo ''; \
         ); \
         sudo ip6tables -A INPUT -i eth0 $source -p tcp --dport 53 -j ACCEPT; \
         sudo ip6tables -A INPUT -i eth0 $source -p udp --dport 53 -j ACCEPT; \

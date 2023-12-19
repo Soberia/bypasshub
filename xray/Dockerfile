@@ -44,8 +44,7 @@ CMD trap 'exit' TERM INT; \
     sudo iptables -A OUTPUT -d 10.0.0.0/8,172.16.0.0/12,192.168.0.0/16 -j DROP; \
 
     sudo ip6tables -A INPUT -i eth0 -p ipv6-icmp -j ACCEPT; \
-    if [[ $ENABLE_IPV6 == true && ! -z $IPV6_SUBNET ]] && \
-        [[ ! -z $BIND_IPV6 && ! -z $NGINX_IPV6 ]]; then \
+    if [[ $ENABLE_IPV6 == true ]]; then \
         sudo ip6tables -A OUTPUT -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT; \
         sudo ip6tables -A OUTPUT -d $BIND_IPV6 -p udp --dport 53 -j ACCEPT; \
         sudo ip6tables -A OUTPUT -d $BIND_IPV6 -p tcp --dport 53 -j ACCEPT; \

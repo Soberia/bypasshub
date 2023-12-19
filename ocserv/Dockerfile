@@ -49,23 +49,20 @@ CMD trap '[ -z $pid ] && exit || kill -TERM -$pid' TERM INT; \
     iptables -A INPUT -i lo -j ACCEPT; \
     iptables -A INPUT -i eth0 -p tcp --dport 443 -j ACCEPT; \
     iptables -A INPUT -i eth0 -p udp --dport $OCSERV_DTLS_PORT -j ACCEPT; \
-    if [ ! -z $OCSERV_IPV4_SUBNET ]; then \
-        iptables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT; \
-        iptables -A FORWARD -i eth0 -d $OCSERV_IPV4_SUBNET -j ACCEPT; \
-        iptables -A FORWARD -s $OCSERV_IPV4_SUBNET -o eth0 -d $BIND_IPV4 -p udp --dport 53 -j ACCEPT; \
-        iptables -A FORWARD -s $OCSERV_IPV4_SUBNET -o eth0 -d $BIND_IPV4 -p tcp --dport 53 -j ACCEPT; \
-        iptables -A FORWARD -s $OCSERV_IPV4_SUBNET -o eth0 -d 10.0.0.0/8,172.16.0.0/12,192.168.0.0/16 -j DROP; \
-        iptables -A FORWARD -s $OCSERV_IPV4_SUBNET -o eth0 -j ACCEPT; \
-        iptables -t nat -A POSTROUTING -s $OCSERV_IPV4_SUBNET -o eth0 -j MASQUERADE; \
-    fi; \
+    iptables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT; \
+    iptables -A FORWARD -i eth0 -d $OCSERV_IPV4_SUBNET -j ACCEPT; \
+    iptables -A FORWARD -s $OCSERV_IPV4_SUBNET -o eth0 -d $BIND_IPV4 -p udp --dport 53 -j ACCEPT; \
+    iptables -A FORWARD -s $OCSERV_IPV4_SUBNET -o eth0 -d $BIND_IPV4 -p tcp --dport 53 -j ACCEPT; \
+    iptables -A FORWARD -s $OCSERV_IPV4_SUBNET -o eth0 -d 10.0.0.0/8,172.16.0.0/12,192.168.0.0/16 -j DROP; \
+    iptables -A FORWARD -s $OCSERV_IPV4_SUBNET -o eth0 -j ACCEPT; \
+    iptables -t nat -A POSTROUTING -s $OCSERV_IPV4_SUBNET -o eth0 -j MASQUERADE; \
 
     ip6tables -P INPUT DROP; \
     ip6tables -P FORWARD DROP; \
     ip6tables -A INPUT -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT; \
     ip6tables -A INPUT -i lo -j ACCEPT; \
     ip6tables -A INPUT -i eth0 -p ipv6-icmp -j ACCEPT; \
-    if [[ $ENABLE_IPV6 == true && ! -z $IPV6_SUBNET ]] && \
-        [[ ! -z $OCSERV_IPV6_SUBNET && ! -z $BIND_IPV6 && ! -z $NGINX_IPV6 ]]; then \
+    if [[ $ENABLE_IPV6 == true ]]; then \
         ip6tables -A INPUT -i eth0 -s $IPV6_SUBNET -p tcp --dport 443 -j ACCEPT; \
         ip6tables -A INPUT -i eth0 -s $IPV6_SUBNET -p udp --dport $OCSERV_DTLS_PORT -j ACCEPT; \
         ip6tables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT; \
