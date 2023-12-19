@@ -21,7 +21,7 @@ RUN apt-get update && \
 
 USER xray
 SHELL ["bash", "-c"]
-CMD trap 'exit' TERM INT; \
+ENTRYPOINT trap 'exit' TERM INT; \
     install -d -m 0755 /tmp/xray; \
     rm -f /tmp/xray/*.sock >/dev/null 2>&1; \
     cp -f /usr/local/etc/xray/xray.json /tmp/xray/xray.json; \

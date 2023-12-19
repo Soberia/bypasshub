@@ -35,7 +35,7 @@ RUN apt-get update && \
         --shell /usr/sbin/nologin --uid 102 ocserv;
 
 SHELL ["bash", "-c"]
-CMD trap 'exit' TERM INT; \
+ENTRYPOINT trap 'exit' TERM INT; \
     install -d -m 0755 --owner ocserv --group ocserv /tmp/ocserv; \
     rm -f /tmp/ocserv/ocserv.sock.* >/dev/null 2>&1; \
     cp /etc/ocserv/ocserv.conf /tmp/ocserv/ocserv.conf; \

@@ -20,7 +20,7 @@ RUN apt-get update && \
         --proto_path Xray-core-$XRAY_VERSION \
         Xray-core-$XRAY_VERSION/**/*.proto; \
     # The `protobuf` doesn't support relative imports in generated modules.
-    # Therefor, relative import statements should be replaced with absoule import.
+    # Therefor, relative import statements should be replaced with absolute import.
     # See https://github.com/protocolbuffers/protobuf/issues/1491
     sed -i -E \
         -e "s/(from\s+)(.*)(pb2)$/\1$package.\2\3/g" \

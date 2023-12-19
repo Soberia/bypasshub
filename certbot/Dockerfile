@@ -16,7 +16,6 @@ RUN apk add --no-cache bash sudo; \
     echo ', /bin/chmod * /etc/letsencrypt*' >> /etc/sudoers;
 
 USER certbot
-ENTRYPOINT []
 SHELL ["bash", "-c"]
 
 # The purpose of the health check is to notify the dependent
@@ -39,7 +38,7 @@ HEALTHCHECK --interval=1s --timeout=9000000300s --retries=0 \
             exit; \
         done
 
-CMD trap 'exit' TERM INT; \
+ENTRYPOINT trap 'exit' TERM INT; \
     exit_code=/dev/shm/exit-code; \
     last_renewal=/tmp/certbot/last-renewal; \
     certificate=/etc/letsencrypt/live/$DOMAIN/fullchain.pem; \

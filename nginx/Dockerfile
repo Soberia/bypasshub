@@ -24,7 +24,7 @@ RUN apt-get update && \
 
 USER nginx
 SHELL ["bash", "-c"]
-CMD trap 'exit' TERM INT; \
+ENTRYPOINT trap 'exit' TERM INT; \
     install -d -m 0755 /tmp/nginx/{cache,log}; \
     rm -f /tmp/nginx/*.sock >/dev/null 2>&1; \
     cp /etc/nginx/nginx.conf /tmp/nginx/nginx.conf; \

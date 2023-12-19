@@ -9,7 +9,7 @@ RUN apt-get update && \
 
 USER bind
 SHELL ["bash", "-c"]
-CMD trap 'exit' TERM INT; \
+ENTRYPOINT trap 'exit' TERM INT; \
     install -d -m 0755 /tmp/bind/{cache,keys}; \
     cp /etc/bind/named.conf /tmp/bind/named.conf; \
     cp /etc/bind/db.forward /tmp/bind/db.forward; \
