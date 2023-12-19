@@ -155,7 +155,4 @@ CMD trap 'exit' TERM INT; \
         fi; \
     done; \
 
-    # Triggering the default entrypoint script
-    /docker-entrypoint.sh nginx -v &>/dev/null; \
-
     exec nginx -c /tmp/nginx/nginx.conf -g 'daemon off;'
