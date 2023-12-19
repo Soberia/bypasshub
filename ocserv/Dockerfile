@@ -1,4 +1,4 @@
-ARG VERSION=1.2.2
+ARG VERSION=1.2.3
 
 FROM ubuntu:rolling AS ocserv
 ARG VERSION
@@ -13,12 +13,11 @@ RUN apt-get update && \
     autoreconf -fvi; \
     ./configure --disable-systemd --disable-compression \
         --without-root-tests --without-asan-broken-tests \
-        --without-nuttcp-tests --without-tun-tests \
-        --without-http-parser --without-protobuf --without-maxmind \
-        --without-geoip --without-liboath --without-pam --without-radius \
-        --without-gssapi --without-pcl-lib --without-utmp \
-        --without-libwrap --without-lz4 --with-local-talloc \
-        --with-pager=""; \
+        --without-tun-tests --without-http-parser --without-protobuf \
+        --without-maxmind --without-geoip --without-liboath \
+        --without-pam --without-radius --without-gssapi \
+        --without-pcl-lib --without-utmp --without-libwrap \
+        --without-lz4 --with-local-talloc --with-pager=""; \
     make && make install;
 
 FROM ubuntu:rolling
@@ -36,7 +35,7 @@ RUN apt-get update && \
         --shell /usr/sbin/nologin --uid 102 ocserv;
 
 SHELL ["bash", "-c"]
-CMD trap '[ -z $pid ] && exit || kill -TERM -$pid' TERM INT; \
+CMD trap 'exit' TERM INT; \
     install -d -m 0755 --owner ocserv --group ocserv /tmp/ocserv; \
     rm -f /tmp/ocserv/ocserv.sock.* >/dev/null 2>&1; \
     cp /etc/ocserv/ocserv.conf /tmp/ocserv/ocserv.conf; \
@@ -159,14 +158,7 @@ CMD trap '[ -z $pid ] && exit || kill -TERM -$pid' TERM INT; \
         unset users user; \
     fi; \
 
-    # `ocserv` doesn't properly propagate the `SIGTERM` signal
-    # to the worker processes.
-    # See https://gitlab.com/openconnect/ocserv/-/issues/563
-    #
-    # TODO: This bug will be fixed in `ocserv` version 1.2.3,
-    #       There will be no need to manually handling the propagation.
-    ocserv --foreground --config /tmp/ocserv/ocserv.conf & \
-    pid=$!; \
-    while kill -0 $pid >/dev/null 2>&1; do \
-        wait $pid; \
-    done
+    exec ocserv \
+        --log-stderr \
+        --foreground \
+        --config /tmp/ocserv/ocserv.conf
