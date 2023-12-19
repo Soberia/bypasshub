@@ -177,6 +177,27 @@ CMD trap 'exit' TERM INT; \
 
             code=$?; \
             rm -f $config; \
+        elif [ ! -z "$CLOUDFLARE_API_TOKEN" ]; then \
+            config=/dev/shm/cloudflare.ini; \
+            echo "dns_cloudflare_api_token = $CLOUDFLARE_API_TOKEN" > $config; \
+            chmod 600 $config; \
+            echo $message; \
+
+            certbot certonly \
+                --non-interactive \
+                --agree-tos \
+                --force-renewal \
+                --dns-cloudflare \
+                --dns-cloudflare-propagation-seconds 30 \
+                --dns-cloudflare-credentials $config \
+                --work-dir /tmp/certbot/lib \
+                --logs-dir /tmp/certbot/log \
+                --email $EMAIL \
+                --cert-name $DOMAIN \
+                --domain "$DOMAIN,*.$DOMAIN"; \
+
+            code=$?; \
+            rm -f $config; \
         elif [ ! -f $certificate ]; then \
             echo "The TLS certificate does not exist" \
                 "and no method has enabled to generate one" >&2; \

@@ -121,7 +121,7 @@ services:
         build:
             context: ./certbot
             args:
-                PLUGIN: rfc2136
+                PLUGIN: cloudflare
         volumes:
             - ./certbot/letsencrypt:/etc/letsencrypt
             - ./certbot/letsencrypt/lib:/var/lib/letsencrypt
@@ -142,6 +142,7 @@ services:
             ENABLE_CERTBOT_HTTP_MODE: $ENABLE_CERTBOT_HTTP_MODE
             ENABLE_IPV6: $ENABLE_IPV6
             CERTBOT_RENEWAL_LEFT_DAYS: $CERTBOT_RENEWAL_LEFT_DAYS
+            CLOUDFLARE_API_TOKEN: $CLOUDFLARE_API_TOKEN
             BIND_IPV4: 192.168.100.3
 
     nginx:

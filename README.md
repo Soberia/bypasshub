@@ -57,6 +57,10 @@ You need to go to your domain registrar and set the nameservers to the `ns1.$DOM
 
 However, if you already have a DNS server on your machine or you use your DNS registrar's, you can skip the above step and enable [`ENABLE_CERTBOT_HTTP_MODE`](#ENABLE_CERTBOT_HTTP_MODE) and disable [`ENABLE_AUTHORITATIVE_ZONE`](#ENABLE_AUTHORITATIVE_ZONE) parameters because you can't use two DNS servers at the same time on a same port. On your DNS server, create an `A` (and/or `AAAA`) record for [`DOMAIN`](#DOMAIN), [`XRAY_SNI`](#XRAY_SNI), [`XRAY_CDN_SNI`](#XRAY_CDN_SNI), [`OCSERV_SNI`](#OCSERV_SNI) and `www.$DOMAIN` and point them to the [`PUBLIC_IPV4`](#PUBLIC_IPV4) (or [`NGINX_IPV6`](#NGINX_IPV6)).
 
+> **Note**  
+> If you use the Cloudflare DNS server, you can go to the **My Profile > API Tokens** of your dashboard and create a new API token for editing the DNS zone and specify your token with the [`CLOUDFLARE_API_TOKEN`](#CLOUDFLARE_API_TOKEN) parameter. In this way, a wildcard TLS certificate will be generated instead and there is no need to regenerate the certificate again when the SNI values have been changed.  
+> Both [`ENABLE_AUTHORITATIVE_ZONE`](#ENABLE_AUTHORITATIVE_ZONE) and [`ENABLE_CERTBOT_HTTP_MODE`](#ENABLE_CERTBOT_HTTP_MODE) parameters should be disabled for this to take effect.
+
 > **Warning**  
 > You need to stop any service that you might have listening on the TCP port `80` if the [`ENABLE_CERTBOT_HTTP_MODE`](#ENABLE_CERTBOT_HTTP_MODE) parameter is enabled.
 
@@ -323,6 +327,7 @@ Variable                                                              | Type   |
 <span id="ENABLE_XRAY_SUBSCRIPTION">ENABLE_XRAY_SUBSCRIPTION</span>   | switch | Enables the `Xray-core` clients to access the configs by a subscription URL. Only authorized users have access to the subscription by providing their credentials.
 <span id="NGINX_LOG_PURGE_INTERVAL">NGINX_LOG_PURGE_INTERVAL</span>   | number | The interval in seconds that `NGINX` logs would be cleared. The value of `0`, keeps the logs forever.
 <span id="CERTBOT_RENEWAL_LEFT_DAYS">CERTBOT_RENEWAL_LEFT_DAYS</span> | number | The remained days until the TLS certificate expiration. The generated TLS certificate is valid for 90 days and it will renew automatically after the remained days to the expiration date specified by this parameter have crossed. The value of `0`, prevents the certificate regeneration when near to expiry or when the certificate has already expired.
+<span id="CLOUDFLARE_API_TOKEN">CLOUDFLARE_API_TOKEN</span>           | string | The Cloudflare API token. This value will be used to manage the `TXT` DNS records on the Cloudflare DNS server during the TLS certificate generation. The generated certificate is a wildcard certificate when this parameter is specified.
 <span id="OCSERV_KEY">OCSERV_KEY</span>                               | string | The optional secret key for masquerading the `OpenConnect` VPN server identity.
 <span id="ENABLE_API">ENABLE_API</span>                               | switch | Enables the [user management API](bypasshub/README.md#-api).
 <span id="ENABLE_API_UI">ENABLE_API_UI</span>                         | switch | Enables the web-based UI for interacting with the API.
