@@ -67,14 +67,17 @@ services:
             general:
                 ipv4_address: 192.168.100.2
                 ipv6_address: $BYPASSHUB_IPV6
+        depends_on:
+            certbot:
+                condition: service_healthy
         profiles:
             - default
         environment:
             DOMAIN: $DOMAIN
-            ENABLE_API: $ENABLE_API
-            ENABLE_API_UI: $ENABLE_API_UI
             ENABLE_XRAY_CDN: $ENABLE_XRAY_CDN
             ENABLE_XRAY_SUBSCRIPTION: $ENABLE_XRAY_SUBSCRIPTION
+            ENABLE_API: $ENABLE_API
+            ENABLE_API_UI: $ENABLE_API_UI
             API_KEY: $API_KEY
             XRAY_SNI: $XRAY_SNI
             XRAY_CDN_SNI: $XRAY_CDN_SNI
@@ -83,6 +86,63 @@ services:
             COMPOSE_PROFILES: ${COMPOSE_PROFILES:?}
         stop_grace_period: 20s
         <<: *common
+
+    bind:
+        build: ./bind
+        volumes:
+            - ./bind/named.conf:/etc/bind/named.conf:ro
+            - ./bind/db.forward:/etc/bind/db.forward:ro
+            - temp:/tmp
+        networks:
+            general:
+                ipv4_address: 192.168.100.3
+                ipv6_address: $BIND_IPV6
+        cap_add:
+            - NET_ADMIN # for iptables
+        profiles:
+            - default
+        environment:
+            DOMAIN: ${DOMAIN:?}
+            XRAY_SNI: $XRAY_SNI
+            OCSERV_SNI: $OCSERV_SNI
+            ENABLE_DNSSEC: $ENABLE_DNSSEC
+            DNS_CACHE_SIZE: ${DNS_CACHE_SIZE:?}
+            DNS_IPV4: ${DNS_IPV4:?}
+            DNS_IPV6: $DNS_IPV6
+            PUBLIC_IPV4: $PUBLIC_IPV4
+            ENABLE_IPV6: $ENABLE_IPV6
+            IPV6_SUBNET: $IPV6_SUBNET
+            BIND_IPV6: $BIND_IPV6
+            NGINX_IPV6: $NGINX_IPV6
+            COMPOSE_PROFILES: ${COMPOSE_PROFILES:?}
+        <<: *common
+
+    certbot:
+        build:
+            context: ./certbot
+            args:
+                PLUGIN: rfc2136
+        volumes:
+            - ./certbot/letsencrypt:/etc/letsencrypt
+            - ./certbot/letsencrypt/lib:/var/lib/letsencrypt
+            - temp:/tmp
+        networks:
+            general:
+                ipv4_address: 192.168.100.4
+                ipv6_address: $CERTBOT_IPV6
+        profiles:
+            - default
+        environment:
+            DOMAIN: ${DOMAIN:?}
+            XRAY_SNI: $XRAY_SNI
+            XRAY_CDN_SNI: $XRAY_CDN_SNI
+            OCSERV_SNI: $OCSERV_SNI
+            EMAIL: $EMAIL
+            ENABLE_AUTHORITATIVE_ZONE: $ENABLE_AUTHORITATIVE_ZONE
+            ENABLE_CERTBOT_HTTP_MODE: $ENABLE_CERTBOT_HTTP_MODE
+            ENABLE_IPV6: $ENABLE_IPV6
+            CERTBOT_RENEWAL_LEFT_DAYS: $CERTBOT_RENEWAL_LEFT_DAYS
+            BIND_IPV4: 192.168.100.3
 
     nginx:
         build: ./nginx
@@ -100,6 +160,9 @@ services:
             - NET_ADMIN # for iptables
         ports:
             - ${TLS_PORT:?}:443/tcp
+        depends_on:
+            certbot:
+                condition: service_healthy
         profiles:
             - default
         environment:
@@ -113,63 +176,13 @@ services:
             DNS_IPV6: $DNS_IPV6
             ENABLE_IPV6: $ENABLE_IPV6
             IPV6_SUBNET: $IPV6_SUBNET
+            CERTBOT_IPV4: 192.168.100.4
+            CERTBOT_IPV6: $CERTBOT_IPV6
+            NGINX_IPV4: 192.168.100.5
+            NGINX_IPV6: $NGINX_IPV6
             NGINX_LOG_PURGE_INTERVAL: $NGINX_LOG_PURGE_INTERVAL
             COMPOSE_PROFILES: ${COMPOSE_PROFILES:?}
         <<: *common
-
-    bind:
-        build: ./bind
-        volumes:
-            - ./bind/named.conf:/etc/bind/named.conf:ro
-            - ./bind/db.forward:/etc/bind/db.forward:ro
-            - temp:/tmp
-        networks:
-            general:
-                ipv4_address: 192.168.100.3
-                ipv6_address: $BIND_IPV6
-        cap_add:
-            - NET_ADMIN # for iptables
-        profiles:
-            - default
-            - certbot
-        environment:
-            DOMAIN: ${DOMAIN:?}
-            XRAY_SNI: $XRAY_SNI
-            OCSERV_SNI: $OCSERV_SNI
-            ENABLE_DNSSEC: $ENABLE_DNSSEC
-            DNS_CACHE_SIZE: ${DNS_CACHE_SIZE:?}
-            DNS_IPV4: ${DNS_IPV4:?}
-            DNS_IPV6: $DNS_IPV6
-            ENABLE_IPV6: $ENABLE_IPV6
-            IPV6_SUBNET: $IPV6_SUBNET
-            PUBLIC_IPV4: $PUBLIC_IPV4
-            NGINX_IPV4: 192.168.100.5
-            NGINX_IPV6: $NGINX_IPV6
-            COMPOSE_PROFILES: ${COMPOSE_PROFILES:?}
-        <<: *common
-
-    certbot:
-        build: ./certbot
-        volumes:
-            - ./certbot/letsencrypt:/etc/letsencrypt
-        networks:
-            general:
-                ipv4_address: 192.168.100.4
-                ipv6_address: $CERTBOT_IPV6
-        ports:
-            - 80:80
-            - 443:443
-        depends_on:
-            - bind
-        profiles:
-            - certbot
-            - certbot-standalone
-        environment:
-            DOMAIN: ${DOMAIN:?}
-            XRAY_SNI: $XRAY_SNI
-            XRAY_CDN_SNI: $XRAY_CDN_SNI
-            OCSERV_SNI: $OCSERV_SNI
-            EMAIL: $EMAIL
 
     xray:
         build: ./xray

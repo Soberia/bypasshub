@@ -19,7 +19,8 @@ COPY --chmod=644 --from=nginx /nginx*/objs/*.so /usr/lib/nginx/modules/
 RUN apt-get update && \
     apt-get install -y --no-install-recommends iptables sudo; \
     apt-get clean; \
-    echo 'nginx ALL=(root) NOPASSWD:/usr/sbin/ip6tables' >> /etc/sudoers;
+    #
+    echo 'nginx ALL=(root) NOPASSWD:/usr/sbin/iptables, /usr/sbin/ip6tables' >> /etc/sudoers;
 
 USER nginx
 SHELL ["bash", "-c"]
@@ -39,17 +40,34 @@ CMD trap 'exit' TERM INT; \
         sudo ip6tables -A INPUT -i eth0 -p udp --dport $OCSERV_DTLS_PORT -j ACCEPT; \
     fi; \
     if [[ $ENABLE_IPV6 == true ]] && [ ! -z $IPV6_SUBNET ]; then \
-        if [[ $ENABLE_AUTHORITATIVE_ZONE == 'true' ]]; then \
-            sudo ip6tables -A INPUT -i eth0 -p udp --dport 53 -j ACCEPT; \
-            sudo ip6tables -A INPUT -i eth0 -p tcp --dport 53 -j ACCEPT; \
-        fi; \
         sudo ip6tables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT; \
         sudo ip6tables -A FORWARD -d $IPV6_SUBNET -j ACCEPT; \
     fi; \
 
-    # Removing disabled profiles
-    declare -a profiles=('xray' 'ocserv'); \
-    for profile in "${profiles[@]}"; do \
+    if [[ $ENABLE_CERTBOT_HTTP_MODE == true ]]; then \
+        # Redirecting the traffic to the `Certbot` container.
+        # It's not possible to forward the traffic from the `NGINX`
+        # process itself to the `Certbot` container because the TLS
+        # certificate probably is not generated just yet and the
+        # `NGINX` cannot start.
+        # Port 80 also cannot be mapped directly to the `Certbot`
+        # container because all the AAAA DNS records should be set to
+        # the `NGINX` container to just have one entry point and for
+        # the end user to not hassle with multiple IPv6 addresses.
+        sudo iptables -t nat -A PREROUTING -p tcp --dport 80 \
+            -j DNAT --to-destination $CERTBOT_IPV4; \
+        sudo iptables -t nat -A POSTROUTING -p tcp -d $CERTBOT_IPV4 --dport 80 \
+            -j SNAT --to-source $NGINX_IPV4; \
+        if [[ $ENABLE_IPV6 == true ]]; then \
+            sudo ip6tables -t nat -A PREROUTING -p tcp --dport 80 \
+                -j DNAT --to-destination $CERTBOT_IPV6; \
+            sudo ip6tables -t nat -A POSTROUTING -p tcp -d $CERTBOT_IPV6 --dport 80 \
+                -j SNAT --to-source $NGINX_IPV6; \
+        fi; \
+    fi; \
+
+    # Removing the disabled profiles
+    for profile in 'xray' 'ocserv'; do \
         if [[ $COMPOSE_PROFILES != *"$profile"* ]]; then \
             sed -i -e "/#! $profile/,/}/d" -e "/#? $profile/d" /tmp/nginx/nginx.conf; \
         fi; \
@@ -90,7 +108,7 @@ CMD trap 'exit' TERM INT; \
             current_time=$(date '+%s'); \
             if (( $current_time >= $due_date )); then \
                 echo -n | tee /tmp/nginx/log/{access,error,static,api}.log >/dev/null; \
-                kill -USR1 $(cat /tmp/nginx/nginx.pid); \
+                kill -USR1 $(< /tmp/nginx/nginx.pid); \
                 last_purge=$current_time; \
                 echo $current_time > /tmp/nginx/log/last-purge; \
             else \
@@ -99,6 +117,29 @@ CMD trap 'exit' TERM INT; \
             sleep $sleep_time; \
         done & \
     fi; \
+
+    # Periodically reloading the regenerated certificate
+    if [[ $ENABLE_CERTBOT_HTTP_MODE == true ]]; then \
+        while [ ! -f /tmp/certbot/last-renewal ]; do \
+            sleep 0.1 & wait $!; \
+        done; \
+    fi; \
+    last_renewal=$(cat /tmp/certbot/last-renewal 2>/dev/null); \
+    while true; do \
+        if [ -z $last_renewal ]; then \
+            # The container restarted while `Certbot` container is starting
+            sleep 1; \
+            last_renewal=$(cat /tmp/certbot/last-renewal 2>/dev/null); \
+            continue; \
+        fi; \
+
+        sleep 3600; \
+        current_renewal=$(cat /tmp/certbot/last-renewal 2>/dev/null); \
+        if (( $current_renewal > $last_renewal )); then \
+            kill -HUP $(< /tmp/nginx/nginx.pid); \
+            last_renewal=$current_renewal; \
+        fi; \
+    done & \
 
     # Triggering the default entrypoint script
     /docker-entrypoint.sh nginx -v &>/dev/null; \

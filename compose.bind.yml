@@ -1,5 +1,5 @@
 services:
-    nginx:
+    bind:
         ports:
             # It's not possible to listen on all the available IPs due to
             # interfering with `systemd-resolve` or other DNS resolvers
@@ -10,6 +10,9 @@ services:
         environment:
             ENABLE_AUTHORITATIVE_ZONE: true
 
-    bind:
-        environment:
-            ENABLE_AUTHORITATIVE_ZONE: true
+    certbot:
+        build:
+            args:
+                PLUGIN: rfc2136
+        depends_on:
+            - bind

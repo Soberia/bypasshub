@@ -45,88 +45,25 @@ git clone https://github.com/Soberia/bypasshub.git
 cd bypasshub && docker compose build
 ```
 
-## Generating TLS Certificate
-
-> **Note**  
-> If you already have a wildcard certificate covering `$DOMAIN` and `*.$DOMAIN`, you can skip this section entirely and just copy your certificates directory: (this directory is expected to contain `fullchain.pem`, `chain.pem` and `privkey.pem`)
-> 
-> ```bash
-> mkdir -p ./certbot/letsencrypt/live
-> cp -Lr /path/to/your/certificates ./certbot/letsencrypt/live/$DOMAIN
-> ```
-> 
-> Otherwise, follow the rest to generate one. 
-
 Fill the following parameters in the [config file](#-configuration) with your information:
 
 - [`DOMAIN`](#DOMAIN)
-- [`EMAIL`](#EMAIL)
 - [`PUBLIC_IPV4`](#PUBLIC_IPV4)
 
-It's also recommended to change [`XRAY_SNI`](#XRAY_SNI), [`XRAY_CDN_SNI`](#XRAY_CDN_SNI) and [`OCSERV_SNI`](#OCSERV_SNI) subdomain part to something else. For example, default [`XRAY_SNI`](#XRAY_SNI) value is `xr.$DOMAIN`, you can change it to `hotdog.$DOMAIN` or any other random value instead. You'll use these values when connecting from the client side.
-
-If you already have a DNS server on your machine or you use your DNS registrar's, create an `A` (and/or `AAAA`) record for [`DOMAIN`](#DOMAIN), [`XRAY_SNI`](#XRAY_SNI), [`XRAY_CDN_SNI`](#XRAY_CDN_SNI), [`OCSERV_SNI`](#OCSERV_SNI) and `www.$DOMAIN` and point them to the [`PUBLIC_IPV4`](#PUBLIC_IPV4) (or [`NGINX_IPV6`](#NGINX_IPV6)) and disable the [`ENABLE_AUTHORITATIVE_ZONE`](#ENABLE_AUTHORITATIVE_ZONE) parameter because you can't use two DNS servers at the same time on the same port.
-
-Otherwise, you need to go to your domain registrar and set the nameservers to the `ns1.$DOMAIN` and `ns2.$DOMAIN` (replace `$DOMAIN` with your actual domain, e.g. `ns1.domain.com`). You also need to create glue records for these nameservers you just defined. The glue records for your nameservers should point to your server's public IP address. Set these glue records in your domain registrar: (replace `$DOMAIN` and `$PUBLIC_IPV4` with your actual domain and public IP address)
-
-```
-ns1.$DOMAIN -> $PUBLIC_IPV4
-ns2.$DOMAIN -> $PUBLIC_IPV4
-```
-
-> **Warning**  
-> You may need some time for your nameservers to get populated before you continue. 
-
-To generate the certificate, run this command (replace `ENABLE_CERTBOT` with `ENABLE_CERTBOT_STANDALONE` if you have your own DNS server):
-
-> **Warning**  
-> You need to temporarily stop any service that you might have listening on the TCP port `80` and `443`.
-
-```bash
-ENABLE_CERTBOT= docker compose up --force-recreate --abort-on-container-exit && \
-    docker compose down --remove-orphans
-```
-
-<details>
-<summary style="color: cyan">If everything goes fine, you should see this on your console.</summary>
-
-```log
-bypasshub-certbot-1  | Successfully received certificate.
-bypasshub-certbot-1  | Certificate is saved at: /etc/letsencrypt/live/$DOMAIN/fullchain.pem
-bypasshub-certbot-1  | Key is saved at:         /etc/letsencrypt/live/$DOMAIN/privkey.pem
-bypasshub-certbot-1  | This certificate expires on 2023-04-25.
-bypasshub-certbot-1  | These files will be updated when the certificate renews.
-bypasshub-certbot-1  | NEXT STEPS:
-bypasshub-certbot-1  | - The certificate will need to be renewed before it expires. Certbot can automatically renew the certificate in the background, but you may need to take steps to enable that functionality. See https://certbot.org/renewal-setup for instructions.
-bypasshub-certbot-1  | 
-bypasshub-certbot-1  | - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bypasshub-certbot-1  | If you like Certbot, please consider supporting our work by:
-bypasshub-certbot-1  |  * Donating to ISRG / Let's Encrypt:   https://letsencrypt.org/donate
-bypasshub-certbot-1  |  * Donating to EFF:                    https://eff.org/donate-le
-bypasshub-certbot-1  | - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-```
-</details>
-
-The certificate is valid for 90 days. You have to reissue it before the expiration date.  
-All you have to do for regenerating the certificate is to temporarily stop the containers (`docker compose stop`) and rerun the last command again and restart the containers after that. (`docker compose restart`)
-
 > **Note**  
-> You can check the expiration date of your certificate with this command:
-> 
-> ```bash
-> openssl x509 -dates -noout < ./certbot/letsencrypt/live/$DOMAIN/fullchain.pem
-> ```
+> It's also recommended to change [`XRAY_SNI`](#XRAY_SNI), [`XRAY_CDN_SNI`](#XRAY_CDN_SNI) and [`OCSERV_SNI`](#OCSERV_SNI) subdomain part to something else. For example, default [`XRAY_SNI`](#XRAY_SNI) value is `xr.$DOMAIN`, you can change it to `hotdog.$DOMAIN` or any other random value instead. You'll use these values when connecting from the client side.
+
+You need to go to your domain registrar and set the nameservers to the `ns1.$DOMAIN` and `ns2.$DOMAIN` (replace `$DOMAIN` with your actual domain, e.g. `ns1.domain.com`). You also need to create glue records for these nameservers you just defined. The glue records for your nameservers should point to your server's public IP address. (i.e. `ns1.$DOMAIN -> $PUBLIC_IPV4`)
+
+However, if you already have a DNS server on your machine or you use your DNS registrar's, you can skip the above step and enable [`ENABLE_CERTBOT_HTTP_MODE`](#ENABLE_CERTBOT_HTTP_MODE) and disable [`ENABLE_AUTHORITATIVE_ZONE`](#ENABLE_AUTHORITATIVE_ZONE) parameters because you can't use two DNS servers at the same time on a same port. On your DNS server, create an `A` (and/or `AAAA`) record for [`DOMAIN`](#DOMAIN), [`XRAY_SNI`](#XRAY_SNI), [`XRAY_CDN_SNI`](#XRAY_CDN_SNI), [`OCSERV_SNI`](#OCSERV_SNI) and `www.$DOMAIN` and point them to the [`PUBLIC_IPV4`](#PUBLIC_IPV4) (or [`NGINX_IPV6`](#NGINX_IPV6)).
 
 > **Warning**  
-> You must regenerate the certificate whenever you need to change any of these parameters:
-> - [`DOMAIN`](#DOMAIN)
-> - [`XRAY_SNI`](#XRAY_SNI)
-> - [`XRAY_CDN_SNI`](#XRAY_CDN_SNI)
-> - [`OCSERV_SNI`](#OCSERV_SNI)
+> You need to stop any service that you might have listening on the TCP port `80` if the [`ENABLE_CERTBOT_HTTP_MODE`](#ENABLE_CERTBOT_HTTP_MODE) parameter is enabled.
 
-## Running Containers
+> **Warning**  
+> You may need some time for your nameservers to get populated before you continue.
 
-After [getting your certificate](#generating-tls-certificate), you can bring the containers up:
+Now, bring the containers up:
 
 ```bash
 docker compose up -d
@@ -178,7 +115,7 @@ Get the [`Xray-core`](https://github.com/XTLS/Xray-core) and [`OpenConnect`](htt
     <details>
     <summary style="color: cyan">Using IP Address Instead of Domain</summary>
 
-    If your domain already is blocked, change [`XRAY_SNI`](#XRAY_SNI) parameter's value to something else (e.g. `google.com`) and restart the containers and change the following values to connect with the IP address instead: (replace [`PUBLIC_IPV4`](#PUBLIC_IPV4) with [`NGINX_IPV6`](#NGINX_IPV6) if you want to use IPv6)
+    If your domain already is blocked, change [`XRAY_SNI`](#XRAY_SNI) parameter's value to something else (e.g. `google.com`) and rebuild the containers and change the following values to connect with the IP address instead: (replace [`PUBLIC_IPV4`](#PUBLIC_IPV4) with [`NGINX_IPV6`](#NGINX_IPV6) if you want to use IPv6)
 
     ```
     Address: $PUBLIC_IPV4
@@ -213,7 +150,7 @@ Get the [`Xray-core`](https://github.com/XTLS/Xray-core) and [`OpenConnect`](htt
     <details>
     <summary style="color: cyan">Using IP Address Instead of Domain</summary>
 
-    If your domain already is blocked, change [`OCSERV_SNI`](#OCSERV_SNI) parameter's value to something else (e.g. `bing.com`) and restart the containers and append the following arguments to connect with the IP address instead: (replace [`PUBLIC_IPV4`](#PUBLIC_IPV4) with [`NGINX_IPV6`](#NGINX_IPV6) if you want to use IPv6)
+    If your domain already is blocked, change [`OCSERV_SNI`](#OCSERV_SNI) parameter's value to something else (e.g. `bing.com`) and rebuild the containers and append the following arguments to connect with the IP address instead: (replace [`PUBLIC_IPV4`](#PUBLIC_IPV4) with [`NGINX_IPV6`](#NGINX_IPV6) if you want to use IPv6)
 
     ```cmd
         --sni $OCSERV_SNI ^
@@ -231,13 +168,13 @@ Get the [`Xray-core`](https://github.com/XTLS/Xray-core) and [`OpenConnect`](htt
 
 If your server's IP address (or certain ports) is blocked or traffic to your server gets throttled by the national firewall, you might be able to access your server again or improve the connection speed by placing your server behind a CDN. However, only `Xray-core` can benefit from this due to the fact that usually the CDN providers don't offer tunnel at the TCP/UDP level on their free plans. The `Xray-core` is able to work on a `WebSocket` or `gPRC` connection and a CDN provider like Cloudflare supports both of these protocols for free.
 
-The following will demonstrate to place your server behind a Cloudflare CDN, but the instruction should be the same for other providers:
+The following will demonstrate how to place your server behind the Cloudflare CDN, but the instructions should be the same for other providers:
 - Login to your [dashboard](https://dash.cloudflare.com).
-- Add your website and if your current DNS records couldn't be detected correctly, from the "DNS" panel, create an `A` (and/or `AAAA`) record for [`DOMAIN`](#DOMAIN), [`XRAY_SNI`](#XRAY_SNI), [`XRAY_CDN_SNI`](#XRAY_CDN_SNI), [`OCSERV_SNI`](#OCSERV_SNI) and `www.$DOMAIN` and point them to the [`PUBLIC_IPV4`](#PUBLIC_IPV4) (or [`NGINX_IPV6`](#NGINX_IPV6)). The "Proxy status" should be enabled for all except for the [`XRAY_SNI`](#XRAY_SNI) and [`OCSERV_SNI`](#OCSERV_SNI). You'll need to swap your nameservers to the Cloudflare's in your domain registrar and also remove the glue records.
-- From the "SSL/TLS" panel, change the encryption mode to "Full" or "Full (strict)". In the "Edge Certificates" section, enable the "TLS 1.3" option and set the "Minimum TLS Version" option to the "TLS 1.3".
-- In the "Network" panel, make sure the "WebSockets" is enabled.
-- If the [`ENABLE_XRAY_SUBSCRIPTION`](#ENABLE_XRAY_SUBSCRIPTION) parameter is enabled, you should set the "Caching Level" option to the "No query string" in the "Configuration" section of "Caching" panel.
-- The [`ENABLE_AUTHORITATIVE_ZONE`](#ENABLE_AUTHORITATIVE_ZONE) and [`ENABLE_XRAY_CDN`](#ENABLE_XRAY_CDN) parameters should be disabled and enabled respectively. Restart the containers after the modification.
+- Add your website and if your current DNS records couldn't be detected correctly, from the **DNS** panel, create an `A` (and/or `AAAA`) record for [`DOMAIN`](#DOMAIN), [`XRAY_SNI`](#XRAY_SNI), [`XRAY_CDN_SNI`](#XRAY_CDN_SNI), [`OCSERV_SNI`](#OCSERV_SNI) and `www.$DOMAIN` and point them to the [`PUBLIC_IPV4`](#PUBLIC_IPV4) (or [`NGINX_IPV6`](#NGINX_IPV6)). The **Proxy status** should be enabled for all except for the [`XRAY_SNI`](#XRAY_SNI) and [`OCSERV_SNI`](#OCSERV_SNI). You'll need to swap your nameservers to the Cloudflare's in your domain registrar and also remove the glue records.
+- From the **SSL/TLS** panel, change the encryption mode to **Full** or **Full (strict)**. In the **Edge Certificates** section, enable the **TLS 1.3** option and set the **Minimum TLS Version** option to the **TLS 1.3**.
+- In the **Network** panel, make sure the **WebSockets** is enabled.
+- If the [`ENABLE_XRAY_SUBSCRIPTION`](#ENABLE_XRAY_SUBSCRIPTION) parameter is enabled, you should set the **Caching Level** option to the **No query string** in the **Configuration** section of **Caching** panel.
+- The [`ENABLE_AUTHORITATIVE_ZONE`](#ENABLE_AUTHORITATIVE_ZONE) and [`ENABLE_XRAY_CDN`](#ENABLE_XRAY_CDN) parameters should be disabled and enabled respectively. Rebuild the containers after the modification.
 - [Update](#connecting-from-client) your `Xray-core` client configurations to reflect the changes. If you can't make a successful connection, try with an [IP scanner](https://cloudflare-v2ray.vercel.app) to find healthy IP addresses. You can also put these IP addresses that work on different ISPs to the `xray/configs/cdn-ips` to publish them on the subscription:
     ```
     1.1.1.1 ISP#1
@@ -353,8 +290,6 @@ It's also possible to provide these parameters as environment variable which in 
 
 Variable                                                              | Type   | Description
 --------------------------------------------------------------------- | :----: | -----------
-<span id="ENABLE_CERTBOT">ENABLE_CERTBOT</span>                       | switch | Enables the `certbot` and `BIND` DNS server for generating the TLS certificate.
-<span id="ENABLE_CERTBOT_STANDALONE">ENABLE_CERTBOT_STANDALONE</span> | switch | Enables the `certbot` for generating the TLS certificate.
 <span id="ENABLE_XRAY">ENABLE_XRAY</span>                             | switch | Enables the `Xray-core` proxy server.
 <span id="ENABLE_OCSERV">ENABLE_OCSERV</span>                         | switch | Enables the `OpenConnect` VPN server.
 <span id="DOMAIN">DOMAIN</span>                                       | string | The domain to use for the web server and other TLS-based services.
@@ -365,7 +300,7 @@ Variable                                                              | Type   |
 <span id="TLS_PORT">TLS_PORT</span>                                   | number | The TCP port for the web server and other TLS-based services.
 <span id="CDN_TLS_PORT">CDN_TLS_PORT</span>                           | number | The TCP port for the TLS-based connections to the CDN. This value should only be changed when remapping the [`TLS_PORT`](#TLS_PORT) port on the CDN. (e.g. The connections on the CDN's port 443 would be forwarded to the server's port 8433)
 <span id="OCSERV_DTLS_PORT">OCSERV_DTLS_PORT</span>                   | number | The UDP port for the `OpenConnect` VPN server's DTLS protocol.
-<span id="ENABLE_AUTHORITATIVE_ZONE">ENABLE_AUTHORITATIVE_ZONE</span> | switch | Enables the authoritative DNS zone for provided [`DOMAIN`](#DOMAIN).
+<span id="ENABLE_AUTHORITATIVE_ZONE">ENABLE_AUTHORITATIVE_ZONE</span> | switch | Enables the authoritative DNS zone for provided [`DOMAIN`](#DOMAIN). The generated TLS certificate is a wildcard certificate when this parameter is enabled.
 <span id="ENABLE_DNSSEC">ENABLE_DNSSEC</span>                         | switch | Enables the DNSSEC for the authoritative DNS zone.
 <span id="DNS_CACHE_SIZE">DNS_CACHE_SIZE</span>                       | number | The DNS server's cache size in MB. The value of `0`, will dedicate all the available memory.
 <span id="DNS_IPV4">DNS_IPV4</span>                                   | string | The IPv4 address for forwarding the DNS queries.
@@ -383,9 +318,11 @@ Variable                                                              | Type   |
 <span id="OCSERV_IPV6">OCSERV_IPV6</span>                             | string | The IPv6 address to allocate to the `OpenConnect` container. This address must be in [`IPV6_SUBNET`](#IPV6_SUBNET) range.
 <span id="OCSERV_IPV6_SUBNET">OCSERV_IPV6_SUBNET</span>               | string | The `OpenConnect` VPN server's IPv6 network address. This address must be in [`IPV6_SUBNET`](#IPV6_SUBNET) range.
 <span id="OCSERV_CLIENTS_IPV6_CIDR">OCSERV_CLIENTS_IPV6_CIDR</span>   | number | The IPv6 network size that will be provided to the `OpenConnect` VPN server clients.
+<span id="ENABLE_CERTBOT_HTTP_MODE">ENABLE_CERTBOT_HTTP_MODE</span>   | switch | Enables the `Certbot`'s `standalone` mode for generating the TLS certificate. The generated certificate is not a wildcard certificate and when the SNI values change, a new certificate will be generated as well and replace the old one.
 <span id="ENABLE_XRAY_CDN">ENABLE_XRAY_CDN</span>                     | switch | Enables the `Xray-core` proxy server to work behind the CDN.
 <span id="ENABLE_XRAY_SUBSCRIPTION">ENABLE_XRAY_SUBSCRIPTION</span>   | switch | Enables the `Xray-core` clients to access the configs by a subscription URL. Only authorized users have access to the subscription by providing their credentials.
 <span id="NGINX_LOG_PURGE_INTERVAL">NGINX_LOG_PURGE_INTERVAL</span>   | number | The interval in seconds that `NGINX` logs would be cleared. The value of `0`, keeps the logs forever.
+<span id="CERTBOT_RENEWAL_LEFT_DAYS">CERTBOT_RENEWAL_LEFT_DAYS</span> | number | The remained days until the TLS certificate expiration. The generated TLS certificate is valid for 90 days and it will renew automatically after the remained days to the expiration date specified by this parameter have crossed. The value of `0`, prevents the certificate regeneration when near to expiry or when the certificate has already expired.
 <span id="OCSERV_KEY">OCSERV_KEY</span>                               | string | The optional secret key for masquerading the `OpenConnect` VPN server identity.
 <span id="ENABLE_API">ENABLE_API</span>                               | switch | Enables the [user management API](bypasshub/README.md#-api).
 <span id="ENABLE_API_UI">ENABLE_API_UI</span>                         | switch | Enables the web-based UI for interacting with the API.

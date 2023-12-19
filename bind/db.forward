@@ -10,9 +10,9 @@ $TTL            86400
 @               IN      NS       ns1
 @               IN      NS       ns2
 ns1             IN      A        $PUBLIC_IPV4
-                IN      AAAA     $NGINX_IPV6
+                IN      AAAA     $BIND_IPV6
 ns2             IN      A        $PUBLIC_IPV4
-                IN      AAAA     $NGINX_IPV6
+                IN      AAAA     $BIND_IPV6
 
 ; Hostnames
 @               IN      A        $PUBLIC_IPV4
@@ -26,4 +26,3 @@ $OCSERV_SNI.    IN      A        $PUBLIC_IPV4
 
 ; Certificate Authority
 @               IN      CAA      0 issue "letsencrypt.org"
-@               IN      CAA      0 issuewild ";"

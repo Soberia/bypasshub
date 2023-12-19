@@ -98,14 +98,36 @@ CMD trap '[ -z $pid ] && exit || kill -TERM -$pid' TERM INT; \
         fi; \
     done; \
 
-    # Generating OCSP for stapling
-    while true; do \
+    # Periodically generating the OCSP
+    generate_ocsp() { \
         ocsptool \
             --ask \
             --load-cert /etc/letsencrypt/live/$DOMAIN/fullchain.pem \
             --load-issuer /etc/letsencrypt/live/$DOMAIN/chain.pem \
-            --outfile /tmp/ocserv/ocsp.der; \
+            --outfile /tmp/ocserv/ocsp.der &>/dev/null; \
+    }; \
+    while true; do \
+        generate_ocsp; \
         sleep 3600; \
+    done & \
+
+    # Periodically reloading the regenerated certificate
+    last_renewal=$(cat /tmp/certbot/last-renewal 2>/dev/null); \
+    while true; do \
+        if [ -z $last_renewal ]; then \
+            # The container restarted while `Certbot` container is starting
+            sleep 1; \
+            last_renewal=$(cat /tmp/certbot/last-renewal 2>/dev/null); \
+            continue; \
+        fi; \
+
+        sleep 3600; \
+        current_renewal=$(cat /tmp/certbot/last-renewal 2>/dev/null); \
+        if (( $current_renewal > $last_renewal )); then \
+            generate_ocsp; \
+            kill -HUP $(< /tmp/ocserv/ocserv.pid); \
+            last_renewal=$current_renewal; \
+        fi; \
     done & \
 
     # Starting the message broker

@@ -1,5 +1,9 @@
 services:
-    bind:
-        extends:
-            file: compose.bind.yml
-            service: nginx
+    nginx:
+        ports:
+            - 80:80/tcp
+        depends_on:
+            certbot:
+                condition: service_started
+        environment:
+            ENABLE_CERTBOT_HTTP_MODE: $ENABLE_CERTBOT_HTTP_MODE

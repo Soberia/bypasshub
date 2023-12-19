@@ -92,6 +92,10 @@ CMD trap 'exit' TERM INT; \
         unset users user shared json clients_tcp clients_ws; \
     fi; \
 
+    # There is no way to reload the certificate manually.
+    # The `Xray-core` periodically reloads the certificate
+    # if the certificate has been modified. 
+
     exec /usr/local/bin/xray run \
         -config /tmp/xray/xray.json \
         -confdir /usr/local/etc/xray/confs

@@ -10,7 +10,6 @@ RUN apt-get update && \
 USER bind
 SHELL ["bash", "-c"]
 CMD trap 'exit' TERM INT; \
-    certbot_activated=$([[ $COMPOSE_PROFILES == *"certbot"* ]] && echo true || echo false); \
     install -d -m 0755 /tmp/bind/{cache,keys}; \
     cp /etc/bind/named.conf /tmp/bind/named.conf; \
     cp /etc/bind/db.forward /tmp/bind/db.forward; \
@@ -30,13 +29,27 @@ CMD trap 'exit' TERM INT; \
     sudo ip6tables -A INPUT -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT; \
     sudo ip6tables -A INPUT -i lo -j ACCEPT; \
     sudo ip6tables -A INPUT -i eth0 -p ipv6-icmp -j ACCEPT; \
-    if [[ $ENABLE_IPV6 == true ]] && [[ ! -z $IPV6_SUBNET ]]; then \
-        source=$([[ $certbot_activated == false ]] && echo "-s $IPV6_SUBNET" || echo ''); \
+    if [[ $ENABLE_IPV6 == true ]]; then \
+        source=$( \
+            [[ $ENABLE_AUTHORITATIVE_ZONE != true && ! -z $IPV6_SUBNET ]] && \
+                echo "-s $IPV6_SUBNET" || \
+                echo ''; \
+        ); \
         sudo ip6tables -A INPUT -i eth0 $source -p tcp --dport 53 -j ACCEPT; \
         sudo ip6tables -A INPUT -i eth0 $source -p udp --dport 53 -j ACCEPT; \
     fi; \
 
     if [[ $ENABLE_AUTHORITATIVE_ZONE == true ]]; then \
+        # Removing records for disabled profiles or invalid
+        # SNIs which is not part of the parent domain
+        for profile in 'xray' 'ocserv'; do \
+            sni="${profile^^}_SNI"; \
+            if [[ $COMPOSE_PROFILES != *"$profile"* || ! ${!sni} =~ "$DOMAIN"$ ]]; \
+            then \
+                sed -i "/\$$sni/,+1d" /tmp/bind/db.forward; \
+            fi; \
+        done; \
+
         if [[ $ENABLE_DNSSEC == true ]]; then \
             if [ -z "$(ls -A /tmp/bind/keys)" ]; then \
                 dnssec-keygen -K /tmp/bind/keys -a ECDSAP256SHA256 -3 $DOMAIN; \
@@ -58,16 +71,6 @@ CMD trap 'exit' TERM INT; \
         sed -i "/#! authoritative/,/^}/d" /tmp/bind/named.conf; \
     fi; \
 
-    # Removing records for disabled profiles or invalid
-    # SNIs which is not part of the parent domain
-    for profile in 'xray' 'ocserv'; do \
-        sni="${profile^^}_SNI"; \
-        if [[ $certbot_activated == false && $COMPOSE_PROFILES != *"$profile"* ]] || \
-           [[ ! ${!sni} =~ "$DOMAIN"$ ]]; then \
-            sed -i "/\$$sni/,+1d" /tmp/bind/db.forward; \
-        fi; \
-    done; \
-
     # Injecting the environment variables
     declare -a envs=( \
         'DOMAIN' \
@@ -76,9 +79,9 @@ CMD trap 'exit' TERM INT; \
         'DNS_CACHE_SIZE' \
         'DNS_IPV4' \
         'DNS_IPV6' \
-        'IPV6_SUBNET' \
         'PUBLIC_IPV4' \
-        'NGINX_IPV4' \
+        'IPV6_SUBNET' \
+        'BIND_IPV6' \
         'NGINX_IPV6' \
     ); \
     for env in "${envs[@]}"; do \
