@@ -121,10 +121,12 @@ CMD trap 'exit' TERM INT; \
                     -checkend $(( 3600 * 24 * $CERTBOT_RENEWAL_LEFT_DAYS )) \
                     -in $certificate &>/dev/null; \
                 then \
-                    date=$(expiration_date); \
-                    echo "Certificate is valid and will expire at $(date -Iseconds -d "$date")"; \
-                    [ ! -f $last_renewal ] && echo $(date '+%s' -d "$date") > $last_renewal; \
-                    echo 0 > $exit_code; \
+                    if [ ! -f $exit_code ]; then \
+                        date=$(expiration_date); \
+                        echo "Certificate is valid and will expire at $(date -Iseconds -d "$date")"; \
+                        echo $(date '+%s' -d "$date") > $last_renewal; \
+                        echo 0 > $exit_code; \
+                    fi; \
                     continue; \
                 elif ! openssl x509 -noout -checkend 0 -in $certificate &>/dev/null; then \
                     echo "Certificate is expired"; \
