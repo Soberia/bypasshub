@@ -18,7 +18,14 @@ async def main() -> None:
             f"Only one instance of '{__package__}' should run at the same time"
         )
 
-    # Delaying the import for faster CLI responses
+    # Imports are delayed for faster CLI responses
+
+    # The services are in a waiting state for list of the
+    # users to be generated. Prioritizing the generation of
+    # this list to speed up the starting time of the services.
+    with importlib.import_module("bypasshub.managers").Users() as users:
+        users.generate_list()
+
     await importlib.import_module("bypasshub.app").run()
 
 
