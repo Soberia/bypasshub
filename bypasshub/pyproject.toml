@@ -16,9 +16,9 @@ scripts = { bypasshub = "bypasshub.__main__:run" }
 dependencies = [
     "orjson~=3.9.10",
     "httpx~=0.25.2",
-    "fastapi~=0.104.1",
-    "grpcio==1.59.3",
-    "grpcio-tools==1.59.3",
+    "fastapi~=0.105.0",
+    "grpcio==1.60.0",
+    "grpcio-tools==1.60.0",
     "uvicorn[standard]~=0.24.0"
 ]
 classifiers = [
