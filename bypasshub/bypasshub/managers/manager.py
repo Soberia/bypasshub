@@ -18,7 +18,7 @@ from ..constants import ServiceState, ManagerReason
 from ..types import Credentials, ManagerState, Service
 
 manage_xray = config["main"]["manage_xray"]
-manage_openconnect = config["main"]["manage_openconnect"]
+manage_ocserv = config["main"]["manage_ocserv"]
 logger = logging.getLogger(__name__)
 
 
@@ -49,7 +49,7 @@ class Manager(Users, State[ManagerState]):
         if manage_xray:
             self._xray = Xray()
             self._services.append(self._xray)
-        if manage_openconnect:
+        if manage_ocserv:
             self._openconnect = OpenConnect()
             self._services.append(self._openconnect)
 

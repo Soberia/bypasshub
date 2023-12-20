@@ -18,7 +18,7 @@ config: Config = tomllib.loads(
 profiles = environ.get("COMPOSE_PROFILES")
 for service in (XrayService, OpenConnectService):
     if service.NAME not in profiles:
-        config["main"][f"monitor_{service.NAME}"] = False
+        config["main"][f"manage_{service.NAME}"] = False
 
 config["environment"] = {
     variable.lower(): environ.get(variable)

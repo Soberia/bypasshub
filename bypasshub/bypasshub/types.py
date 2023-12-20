@@ -11,7 +11,7 @@ type Service = Xray | OpenConnect
 
 class _ConfigMain(TypedDict):
     manage_xray: bool
-    manage_openconnect: bool
+    manage_ocserv: bool
     max_users: int
     max_active_users: int
     service_timeout: int

@@ -1,7 +1,7 @@
 [main]
 # The services to be enabled for managing.
 manage_xray = true
-manage_openconnect = true
+manage_ocserv = true
 
 # The maximum allowed users to be created on the database.
 # Specifying Zero means unlimited.
