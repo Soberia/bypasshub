@@ -78,7 +78,7 @@ ENTRYPOINT trap 'exit' TERM INT; \
             fi; \
         done; \
         [[ $ENABLE_XRAY_CDN != true ]] && clients_ws=','; \
-        json=$(jq \
+        json=$(jq -c \
             ".inbounds[1].settings.clients += [${clients_tcp::-1}] | \
             .inbounds[2].settings.clients += [${clients_ws::-1}]" \
             /tmp/xray/xray.json \
