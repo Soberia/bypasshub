@@ -23,8 +23,9 @@ USER xray
 SHELL ["bash", "-c"]
 ENTRYPOINT trap 'exit' TERM INT; \
     install -d -m 0755 /tmp/xray; \
-    rm -f /tmp/xray/*.sock >/dev/null 2>&1; \
-    cp -f /usr/local/etc/xray/xray.json /tmp/xray/xray.json; \
+    rm -f /tmp/xray/*.sock &>/dev/null; \
+    ln -s /dev/shm/xray.json /tmp/xray/xray.json &>/dev/null; \
+    cp -f /usr/local/etc/xray/xray.json /dev/shm/xray.json; \
     if [[ $ENABLE_XRAY_SUBSCRIPTION == true ]]; then \
         cp -f /usr/local/etc/xray/confs/cdn-ips /tmp/xray/cdn-ips 2>/dev/null; \
     fi; \
@@ -53,7 +54,7 @@ ENTRYPOINT trap 'exit' TERM INT; \
     fi; \
 
     # Injecting the environment variables
-    sed -i "s|\$DOMAIN|$DOMAIN|g" /tmp/xray/xray.json; \
+    sed -i "s|\$DOMAIN|$DOMAIN|g" /dev/shm/xray.json; \
 
     # Waiting for the users list to be generated
     current_time=$(date '+%s'); \
@@ -81,9 +82,9 @@ ENTRYPOINT trap 'exit' TERM INT; \
         json=$(jq -c \
             ".inbounds[1].settings.clients += [${clients_tcp::-1}] | \
             .inbounds[2].settings.clients += [${clients_ws::-1}]" \
-            /tmp/xray/xray.json \
+            /dev/shm/xray.json \
         ); \
-        echo -E "$json" > /tmp/xray/xray.json; \
+        echo -E "$json" > /dev/shm/xray.json; \
         unset users user shared json clients_tcp clients_ws; \
     fi; \
 

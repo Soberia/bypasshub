@@ -37,8 +37,9 @@ RUN apt-get update && \
 SHELL ["bash", "-c"]
 ENTRYPOINT trap 'exit' TERM INT; \
     install -d -m 0755 --owner ocserv --group ocserv /tmp/ocserv; \
-    rm -f /tmp/ocserv/ocserv.sock.* >/dev/null 2>&1; \
-    cp /etc/ocserv/ocserv.conf /tmp/ocserv/ocserv.conf; \
+    rm -f /tmp/ocserv/ocserv.sock.* &>/dev/null; \
+    ln -s /dev/shm/passwd /tmp/ocserv/passwd &>/dev/null; \
+    cp -f /etc/ocserv/ocserv.conf /tmp/ocserv/ocserv.conf; \
 
     # Configuring the firewall and rejecting clients
     # access to the host and container's network
@@ -147,12 +148,12 @@ ENTRYPOINT trap 'exit' TERM INT; \
     done; \
 
     # Injecting the users
-    > /tmp/ocserv/passwd; \
+    > /dev/shm/passwd; \
     readarray -t users < /tmp/bypasshub/users; \
     if [ ! -z "${users}" ]; then \
         for user in "${users[@]}"; do \
             user=($user); \
-            ocpasswd --passwd /tmp/ocserv/passwd \
+            ocpasswd --passwd /dev/shm/passwd \
                 ${user[0]} <<< ${user[1]}$'\n'${user[1]}; \
         done; \
         unset users user; \
