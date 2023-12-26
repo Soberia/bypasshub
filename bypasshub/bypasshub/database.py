@@ -42,6 +42,13 @@ class Database:
             key: value
             for key, value in zip([column[0] for column in cursor.description], row)
         }
+
+        # It's not possible to enable the following pragmas within a transaction
+        self.connection.autocommit = True
+        self.connection.execute("PRAGMA journal_mode=WAL")
+        self.connection.execute("PRAGMA foreign_keys=ON")
+        self.connection.autocommit = False
+
         if not Database.__initiated:
             if backup_interval == 0:
                 logger.debug("The database backup procedure is disabled")
@@ -49,14 +56,6 @@ class Database:
 
     def _initiate(self) -> None:
         """Creates the database and its required tables."""
-        autocommit = self.connection.autocommit
-        if not autocommit:
-            # It's not possible to enable the WAL mode within a transaction
-            self.connection.autocommit = True
-        self.connection.execute("PRAGMA journal_mode=WAL")
-        self.connection.autocommit = autocommit
-
-        self.connection.execute("PRAGMA foreign_keys=ON")
         self.connection.executescript(
             """
             CREATE TABLE IF NOT EXISTS users (
