@@ -105,6 +105,9 @@ class Database:
             """
         ).fetchone()
 
+        if database.autocommit == False:
+            database.commit()
+
         return result["size" if type(result) is dict else 0]
 
     @staticmethod

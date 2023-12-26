@@ -81,11 +81,12 @@ class Users:
 
     def _is_exist(self, username: str) -> bool:
         """Whether the user is exist in the database."""
-        if self._database.execute(
-            "SELECT EXISTS(SELECT 1 FROM users WHERE username = ?) AS exist",
-            (username,),
-        ).fetchone()["exist"]:
-            return True
+        with self._database:
+            if self._database.execute(
+                "SELECT EXISTS(SELECT 1 FROM users WHERE username = ?) AS exist",
+                (username,),
+            ).fetchone()["exist"]:
+                return True
 
         return False
 
@@ -139,11 +140,16 @@ class Users:
 
     def validate_credentials(self, credentials: Credentials) -> bool:
         """Whether the user credentials is valid and exist in the database."""
-        if self._database.execute(
-            "SELECT EXISTS(SELECT 1 FROM users WHERE username = ? AND uuid = ?) AS exist",
-            (self.validate_username(credentials["username"]), credentials["uuid"]),
-        ).fetchone()["exist"]:
-            return True
+        with self._database:
+            if self._database.execute(
+                """
+                SELECT EXISTS (
+                    SELECT 1 FROM users WHERE username = ? AND uuid = ?
+                ) AS exist
+                """,
+                (self.validate_username(credentials["username"]), credentials["uuid"]),
+            ).fetchone()["exist"]:
+                return True
 
         return False
 
@@ -231,9 +237,10 @@ class Users:
             ``errors.UserNotExistError``:
                 When the specified user does not exist.
         """
-        credentials = self._database.execute(
-            "SELECT username, uuid FROM users WHERE username = ?", (username,)
-        ).fetchone()
+        with self._database:
+            credentials = self._database.execute(
+                "SELECT username, uuid FROM users WHERE username = ?", (username,)
+            ).fetchone()
 
         if not credentials:
             raise errors.UserNotExistError(username)
@@ -248,22 +255,23 @@ class Users:
             ``errors.UserNotExistError``:
                 When the specified user does not exist.
         """
-        plan = self._database.execute(
-            """
-            SELECT
-                plan_start_date,
-                plan_duration,
-                plan_traffic,
-                plan_traffic_usage,
-                plan_extra_traffic,
-                plan_extra_traffic_usage
-            FROM
-                users
-            WHERE
-                username = ?
-            """,
-            (username,),
-        ).fetchone()
+        with self._database:
+            plan = self._database.execute(
+                """
+                SELECT
+                    plan_start_date,
+                    plan_duration,
+                    plan_traffic,
+                    plan_traffic_usage,
+                    plan_extra_traffic,
+                    plan_extra_traffic_usage
+                FROM
+                    users
+                WHERE
+                    username = ?
+                """,
+                (username,),
+            ).fetchone()
 
         if not plan:
             raise errors.UserNotExistError(username)
@@ -499,19 +507,20 @@ class Users:
         if not self._is_exist(username):
             raise errors.UserNotExistError(username)
 
-        return self._database.execute(
-            """
-            SELECT
-                plan_reserved_date,
-                plan_duration,
-                plan_traffic
-            FROM
-                reserved_plans
-            WHERE
-                username = ?
-            """,
-            (username,),
-        ).fetchone()
+        with self._database:
+            return self._database.execute(
+                """
+                SELECT
+                    plan_reserved_date,
+                    plan_duration,
+                    plan_traffic
+                FROM
+                    reserved_plans
+                WHERE
+                    username = ?
+                """,
+                (username,),
+            ).fetchone()
 
     @_validate_username
     def set_reserved_plan(
@@ -704,10 +713,11 @@ class Users:
             ``errors.UserNotExistError``:
                 When the specified user does not exist.
         """
-        traffic = self._database.execute(
-            "SELECT total_upload, total_download FROM users WHERE username = ?",
-            (username,),
-        ).fetchone()
+        with self._database:
+            traffic = self._database.execute(
+                "SELECT total_upload, total_download FROM users WHERE username = ?",
+                (username,),
+            ).fetchone()
 
         if not traffic:
             raise errors.UserNotExistError(username)
@@ -756,13 +766,15 @@ class Users:
         last_generate.write_text("")
         stream = StringIO()
         try:
-            for credentials in self._database.execute(
-                "SELECT username, uuid FROM users"
-            ).fetchall():
-                username = credentials["username"]
-                if self.has_active_plan(username):
-                    # ``self.activate_reserved_plan()`` method must not be called here
-                    stream.write(f"{username} {credentials['uuid']}\n")
+            with self._database:
+                for credentials in self._database.execute(
+                    "SELECT username, uuid FROM users"
+                ).fetchall():
+                    username = credentials["username"]
+                    if self.has_active_plan(username):
+                        # ``self.activate_reserved_plan()``
+                        # method must not be called in here
+                        stream.write(f"{username} {credentials['uuid']}\n")
 
             stream.seek(0)
             with open(temp_path.joinpath("users"), "w") as file:
@@ -785,17 +797,21 @@ class Users:
     @property
     def usernames(self) -> list[str]:
         """The list of all the users."""
-        return [
-            user["username"]
-            for user in self._database.execute("SELECT username FROM users").fetchall()
-        ]
+        with self._database:
+            return [
+                user["username"]
+                for user in self._database.execute(
+                    "SELECT username FROM users"
+                ).fetchall()
+            ]
 
     @property
     def capacity(self) -> int:
         """The count of all the users."""
-        return self._database.execute("SELECT COUNT(*) AS count FROM users").fetchone()[
-            "count"
-        ]
+        with self._database:
+            return self._database.execute(
+                "SELECT COUNT(*) AS count FROM users"
+            ).fetchone()["count"]
 
     @property
     def active_capacity(self) -> int:
