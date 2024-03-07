@@ -26,12 +26,10 @@
   "routing": {
     "rules": [
       {
-        "type": "field",
         "inboundTag": ["api"],
         "outboundTag": "api"
       },
       {
-        "type": "field",
         "port": 53,
         "network": "tcp,udp",
         "outboundTag": "bind"
