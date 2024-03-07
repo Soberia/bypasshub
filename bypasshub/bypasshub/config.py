@@ -39,7 +39,7 @@ for key in ("enable_xray_cdn", "enable_xray_subscription"):
 config["api"]["enable"] = bool(environ.get("ENABLE_API"))
 config["api"]["ui"] = bool(environ.get("ENABLE_API_UI"))
 
-if api_key := environ.get("API_KEY"):
+if api_key := Path("/run/secrets/api_key").read_text():
     config["api"]["key"] = api_key
 config["api"]["key"] = config["api"]["key"].encode()
 

@@ -178,9 +178,9 @@ ENTRYPOINT trap 'exit' TERM INT; \
 
             code=$?; \
             rm -f $config; \
-        elif [ ! -z "$CLOUDFLARE_API_TOKEN" ]; then \
+        elif [ -s /run/secrets/cloudflare_api_token ]; then \
             config=/dev/shm/cloudflare.ini; \
-            echo "dns_cloudflare_api_token = $CLOUDFLARE_API_TOKEN" > $config; \
+            echo "dns_cloudflare_api_token = $(< /run/secrets/cloudflare_api_token)" > $config; \
             chmod 600 $config; \
             echo $message; \
 

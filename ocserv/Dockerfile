@@ -75,6 +75,7 @@ ENTRYPOINT trap 'exit' TERM INT; \
     fi; \
 
     # Injecting the environment variables
+    OCSERV_KEY=$(< /run/secrets/ocserv_key); \
     CAMOUFLAGE=$([ -z "$OCSERV_KEY" ] && echo false || echo true); \
     declare -a envs=( \
         'DOMAIN' \

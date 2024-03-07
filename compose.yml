@@ -56,6 +56,14 @@ networks:
                 - subnet: 192.168.100.0/28
                 - subnet: ${IPV6_SUBNET:-::/128}
 
+secrets:
+    cloudflare_api_token:
+        environment: CLOUDFLARE_API_TOKEN
+    ocserv_key:
+        environment: OCSERV_KEY
+    api_key:
+        environment: API_KEY
+
 services:
     bypasshub:
         build: ./bypasshub
@@ -70,6 +78,8 @@ services:
         depends_on:
             certbot:
                 condition: service_healthy
+        secrets:
+            - api_key
         profiles:
             - default
         environment:
@@ -78,7 +88,6 @@ services:
             ENABLE_XRAY_SUBSCRIPTION: $ENABLE_XRAY_SUBSCRIPTION
             ENABLE_API: $ENABLE_API
             ENABLE_API_UI: $ENABLE_API_UI
-            API_KEY: $API_KEY
             XRAY_SNI: $XRAY_SNI
             XRAY_CDN_SNI: $XRAY_CDN_SNI
             TLS_PORT: $TLS_PORT
@@ -130,6 +139,8 @@ services:
             general:
                 ipv4_address: 192.168.100.4
                 ipv6_address: $CERTBOT_IPV6
+        secrets:
+            - cloudflare_api_token
         profiles:
             - default
         environment:
@@ -142,7 +153,6 @@ services:
             ENABLE_CERTBOT_HTTP_MODE: $ENABLE_CERTBOT_HTTP_MODE
             ENABLE_IPV6: $ENABLE_IPV6
             CERTBOT_RENEWAL_LEFT_DAYS: $CERTBOT_RENEWAL_LEFT_DAYS
-            CLOUDFLARE_API_TOKEN: $CLOUDFLARE_API_TOKEN
             BIND_IPV4: 192.168.100.3
 
     nginx:
@@ -234,6 +244,8 @@ services:
         depends_on:
             - bypasshub
             - bind
+        secrets:
+            - ocserv_key
         profiles:
             - ocserv
         sysctls:
@@ -244,7 +256,6 @@ services:
             net.ipv6.conf.all.disable_ipv6: 0
         environment:
             DOMAIN: $DOMAIN
-            OCSERV_KEY: $OCSERV_KEY
             TLS_PORT: $TLS_PORT
             OCSERV_DTLS_PORT: $OCSERV_DTLS_PORT
             ENABLE_IPV6: $ENABLE_IPV6
