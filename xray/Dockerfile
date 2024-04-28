@@ -1,4 +1,4 @@
-ARG VERSION=1.8.8
+ARG VERSION=1.8.11
 
 FROM ubuntu:rolling AS xray
 ARG VERSION
