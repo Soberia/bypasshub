@@ -111,7 +111,7 @@ Get the [`Xray-core`](https://github.com/XTLS/Xray-core) and [`OpenConnect`](htt
     UUID: PASSWORD
     Transport Protocol: WS
     Transport Host: $XRAY_CDN_SNI
-    Transport Path: /ws?ed=2048
+    Transport Path: /ws?ed=2560
     Security: TLS
     SNI: $XRAY_CDN_SNI
     ```
