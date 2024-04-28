@@ -3,6 +3,7 @@ import functools
 from io import StringIO
 from typing import Self
 from pathlib import Path
+from urllib.parse import quote
 from collections.abc import Awaitable, Callable
 
 import grpc.aio
@@ -196,7 +197,8 @@ class Xray(BaseService):
                 cdn_port = cdn_tls_port or tls_port
                 url_ws = (
                     f":{cdn_port}{shared}&type=ws&sni={xray_cdn_sni}"
-                    f"&host={xray_cdn_sni}&path=/ws?ed=2048#{domain}-CDN"
+                    f"&host={xray_cdn_sni}&path={quote('/ws?ed=2048')}"
+                    f"#{domain}-CDN"
                 )
                 stream.write(f"vless://{uuid}@{xray_cdn_sni}{url_ws}\n")
                 if xray_cdn_ips_path.exists():
