@@ -1,5 +1,6 @@
 import logging
 from contextlib import suppress, asynccontextmanager
+from collections.abc import AsyncGenerator
 from asyncio.exceptions import CancelledError
 
 from uvicorn import Server, Config
@@ -86,7 +87,7 @@ async def exception_handler(request: Request, exc: Exception) -> JSONResponse:
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> None:
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info("The worker process is started")
     app.state.manager = app_api.state.manager = Manager()
 

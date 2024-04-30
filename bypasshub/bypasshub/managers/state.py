@@ -7,6 +7,7 @@ from contextlib import suppress, contextmanager
 from multiprocessing import current_process
 from multiprocessing.process import AuthenticationString
 from multiprocessing.managers import SyncManager, DictProxy
+from collections.abc import Generator
 
 from .. import errors
 from ..config import config
@@ -61,7 +62,7 @@ class State[T]:
         self._connected = None
 
     @contextmanager
-    def _access_state(self, silent: bool | None = None) -> None:
+    def _access_state(self, silent: bool | None = None) -> Generator[None, None, None]:
         """Handles the state exceptions.
 
         Args:
@@ -98,9 +99,9 @@ class State[T]:
             with self._access_state():
                 self._state_proxy = _synchronizer.state()
                 if RESERVED_NAME not in self._state_proxy:
-                    self._global_lock_proxy = self._state_proxy[
-                        RESERVED_NAME
-                    ] = self._lock()
+                    self._global_lock_proxy = self._state_proxy[RESERVED_NAME] = (
+                        self._lock()
+                    )
                 else:
                     self._global_lock_proxy = self._state_proxy[RESERVED_NAME]
         except Exception:
