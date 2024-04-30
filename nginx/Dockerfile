@@ -74,7 +74,7 @@ ENTRYPOINT trap 'exit' TERM INT; \
     done; \
 
     # Injecting the environment variables
-    DNS_RESOLVER=$(sed -nr 's/.*(127.*)/\1/p' /etc/resolv.conf); \
+    DNS_RESOLVER=$(sed -nr 's/.*(127.*)/\1/p; //q' /etc/resolv.conf); \
     declare -a envs=( \
         'DOMAIN' \
         'XRAY_SNI' \
