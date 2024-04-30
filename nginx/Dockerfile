@@ -148,7 +148,8 @@ ENTRYPOINT trap 'exit' TERM INT; \
             for (( timeout=50; timeout > 0; timeout-- )); do \
                 case $profile in \
                     "xray") [ -S /tmp/xray/api.sock ] && break ;; \
-                    "ocserv") [ -S /tmp/ocserv/ocserv.sock* ] && break ;; \
+                    "ocserv") [ -S $(set -- /tmp/ocserv/ocserv.sock*; echo $1) ] && \
+                        break ;; \
                 esac; \
                 sleep 0.1; \
             done; \
