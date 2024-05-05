@@ -1,4 +1,3 @@
-import re
 import logging
 
 import httpx
@@ -25,9 +24,8 @@ def value_error_converter(error: ValueError) -> RequestValidationError:
                 [
                     InitErrorDetails(
                         type=PydanticCustomError(
-                            "value-error", message := str(error).replace("_", "-")
+                            "value_error", str(error).replace("_", "-")
                         ),
-                        loc=("body", re.search(r"'(.*)'", message).group(1)),
                     )
                 ],
             )
