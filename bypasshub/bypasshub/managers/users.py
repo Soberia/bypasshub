@@ -797,26 +797,32 @@ class Users:
                 date will be included.
         """
         with self._database:
-            return {
-                user["username"]: convert_date(activity_date)
-                for user in self._database.execute(
-                    """
-                    SELECT
-                        username,
-                        user_latest_activity_date
-                    FROM
-                        users
-                    WHERE
-                        STRFTIME('%s', user_latest_activity_date) >= STRFTIME('%s', ?)
-                    """,
-                    (
-                        convert_date(from_date).isoformat()
-                        if from_date is not None
-                        else 0,
-                    ),
-                ).fetchall()
-                if (activity_date := user["user_latest_activity_date"])
-            }
+            return dict(
+                sorted(
+                    {
+                        user["username"]: convert_date(activity_date)
+                        for user in self._database.execute(
+                            """
+                            SELECT
+                                username,
+                                user_latest_activity_date
+                            FROM
+                                users
+                            WHERE
+                                STRFTIME('%s', user_latest_activity_date) >= STRFTIME('%s', ?)
+                            """,
+                            (
+                                convert_date(from_date).isoformat()
+                                if from_date is not None
+                                else 0,
+                            ),
+                        ).fetchall()
+                        if (activity_date := user["user_latest_activity_date"])
+                    }.items(),
+                    key=lambda date: date[1],
+                    reverse=True,
+                )
+            )
 
     def generate_list(self) -> None:
         """
