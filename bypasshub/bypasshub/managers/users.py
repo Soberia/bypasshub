@@ -66,8 +66,7 @@ class Users:
         """Whether plan still has time left."""
         return Users._is_unlimited_time_plan(plan) or current_time() < (
             # plan due date
-            datetime.fromisoformat(plan["plan_start_date"])
-            + timedelta(seconds=plan["plan_duration"])
+            plan["plan_start_date"] + timedelta(seconds=plan["plan_duration"])
         )
 
     @staticmethod
@@ -279,6 +278,9 @@ class Users:
 
         if not plan:
             raise errors.UserNotExistError(username)
+
+        if (start_date := plan["plan_start_date"]) is not None:
+            plan["plan_start_date"] = convert_date(start_date)
 
         return plan
 
@@ -504,7 +506,7 @@ class Users:
             raise errors.UserNotExistError(username)
 
         with self._database:
-            return self._database.execute(
+            reserved_plan = self._database.execute(
                 """
                 SELECT
                     plan_reserved_date,
@@ -517,6 +519,14 @@ class Users:
                 """,
                 (username,),
             ).fetchone()
+
+        if (
+            reserved_plan
+            and (reserved_date := reserved_plan["plan_reserved_date"]) is not None
+        ):
+            reserved_plan["plan_reserved_date"] = convert_date(reserved_date)
+
+        return reserved_plan
 
     @_validate_username
     def set_reserved_plan(
@@ -768,8 +778,9 @@ class Users:
 
         if not activity:
             raise errors.UserNotExistError(username)
-        elif activity := activity["user_latest_activity_date"]:
-            return datetime.fromisoformat(activity)
+
+        if activity_date := activity["user_latest_activity_date"]:
+            return convert_date(activity_date)
 
     def get_latest_activities(
         self, from_date: datetime | str | int | float | None = None
@@ -787,7 +798,7 @@ class Users:
         """
         with self._database:
             return {
-                user["username"]: datetime.fromisoformat(activity_date)
+                user["username"]: convert_date(activity_date)
                 for user in self._database.execute(
                     """
                     SELECT

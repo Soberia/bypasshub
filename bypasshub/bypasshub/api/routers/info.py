@@ -112,7 +112,7 @@ async def latest_activities(
         datetime | None,
         Query(
             description=(
-                "The date range filter in `ISO 8601` format or UNIX timestamp."
+                "The date range filter in `ISO 8601` format or `UNIX timestamp`."
                 " If specified, only the activity dates beyond the specified"
                 " date will be included."
             ),

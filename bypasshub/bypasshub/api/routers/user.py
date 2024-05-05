@@ -1,6 +1,6 @@
 from uuid import uuid4
 from typing import Annotated
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from pydantic import BaseModel, Field
 from fastapi import APIRouter, Depends, Query, Body
@@ -44,7 +44,7 @@ user_not_exist_response_model = {
 
 class PlanRequest(BaseModel):
     plan_start_date: Annotated[
-        str | int | None,
+        datetime | None,
         Field(
             alias="start-date",
             description=(

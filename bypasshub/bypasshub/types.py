@@ -1,4 +1,5 @@
 from threading import Lock
+from datetime import datetime
 from typing import TypedDict, Literal, NotRequired, Any, TYPE_CHECKING
 
 from . import constants
@@ -71,7 +72,7 @@ class _PlanConstraint(TypedDict):
 
 
 class _PlanBase(_PlanConstraint):
-    plan_start_date: str | None
+    plan_start_date: datetime | None
     plan_extra_traffic: int
 
 
@@ -86,14 +87,14 @@ class Credentials(TypedDict):
 
 
 class User(Credentials, Plan):
-    user_creation_date: str | None
-    user_latest_activity_date: str | None
+    user_creation_date: datetime | None
+    user_latest_activity_date: datetime | None
     total_upload: int
     total_download: int
 
 
 class ReservedPlan(_PlanConstraint):
-    plan_reserved_date: str | None
+    plan_reserved_date: datetime | None
 
 
 class UserReservedPlan(ReservedPlan):
@@ -102,7 +103,7 @@ class UserReservedPlan(ReservedPlan):
 
 class History(_PlanBase):
     id: int | None
-    date: str
+    date: datetime
     action: constants.PlanUpdateAction
     username: str
     plan_extra_traffic: int | None
