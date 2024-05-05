@@ -62,6 +62,7 @@ class Database:
                 username VARCHAR(64),
                 uuid TEXT UNIQUE,
                 user_creation_date TEXT,
+                user_latest_activity_date TEXT,
                 plan_start_date TEXT,
                 plan_duration INT, /* in seconds */
                 plan_traffic BIGINT, /* in bytes */

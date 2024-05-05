@@ -1,6 +1,7 @@
 from typing import Annotated
+from datetime import datetime
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 
 from .user import user_not_exist_response_model
 from ..dependencies import get_manager, validate_username
@@ -83,6 +84,42 @@ async def total_traffic(
     username: Annotated[str, Depends(validate_username)],
 ) -> Traffic:
     return manager.get_total_traffic(username)
+
+
+@router.get(
+    "/latest-activity",
+    tags=["info"],
+    summary="The user's latest activity date",
+    responses=user_not_exist_response_model,
+)
+async def latest_activity(
+    manager: Annotated[Manager, Depends(get_manager)],
+    *,
+    username: Annotated[str, Depends(validate_username)],
+) -> datetime | None:
+    return manager.get_latest_activity(username)
+
+
+@router.get(
+    "/latest-activities",
+    tags=["info"],
+    summary="The latest activity date of all the users",
+)
+async def latest_activities(
+    manager: Annotated[Manager, Depends(get_manager)],
+    *,
+    from_date: Annotated[
+        datetime | None,
+        Query(
+            description=(
+                "The date range filter in `ISO 8601` format or UNIX timestamp."
+                " If specified, only the activity dates beyond the specified"
+                " date will be included."
+            ),
+        ),
+    ] = None,
+) -> dict[str, datetime]:
+    return manager.get_latest_activities(from_date)
 
 
 @router.get(
@@ -190,6 +227,6 @@ async def has_no_capacity(manager: Annotated[Manager, Depends(get_manager)]) -> 
     ),
 )
 async def has_no_active_capacity(
-    manager: Annotated[Manager, Depends(get_manager)]
+    manager: Annotated[Manager, Depends(get_manager)],
 ) -> bool:
     return manager.has_no_active_capacity()

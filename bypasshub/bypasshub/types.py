@@ -87,6 +87,7 @@ class Credentials(TypedDict):
 
 class User(Credentials, Plan):
     user_creation_date: str | None
+    user_latest_activity_date: str | None
     total_upload: int
     total_download: int
 

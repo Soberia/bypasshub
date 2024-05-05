@@ -8,14 +8,14 @@ from io import StringIO
 from typing import Self
 from pathlib import Path
 from shutil import copyfileobj
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from collections.abc import Callable
 
 from .. import errors
 from ..config import config
 from ..database import Database
 from ..constants import PlanUpdateAction
-from ..utils import current_time, convert_time, convert_size
+from ..utils import current_time, convert_date, convert_time, convert_size
 from ..types import Credentials, Plan, Traffic, ReservedPlan
 
 USERNAME_MIN_LENGTH = 1
@@ -97,6 +97,7 @@ class Users:
         extra_traffic_usage: int,
         upload: int,
         download: int,
+        update_activity_date: bool = True,
     ) -> None:
         """Appends user's traffic usage by the given values."""
         with self._database:
@@ -105,6 +106,7 @@ class Users:
                 UPDATE
                     users
                 SET
+                    user_latest_activity_date = IIF(?, ?, user_latest_activity_date),
                     plan_traffic_usage = plan_traffic_usage + ?,
                     plan_extra_traffic_usage = plan_extra_traffic_usage + ?,
                     total_upload = total_upload + ?,
@@ -113,6 +115,8 @@ class Users:
                     username = ?
                 """,
                 (
+                    update_activity_date,
+                    current_time().isoformat(),
                     traffic_usage,
                     extra_traffic_usage,
                     upload,
@@ -323,15 +327,7 @@ class Users:
                 When the specified user does not exist.
         """
         if start_date is not None:
-            if (start_date_type := type(start_date)) is not datetime:
-                if start_date_type is str:
-                    start_date = datetime.fromisoformat(start_date)
-                elif start_date_type in (int, float):
-                    start_date = datetime.fromtimestamp(start_date, tz=timezone.utc)
-            if start_date.tzinfo != timezone.utc:
-                start_date = start_date.astimezone(timezone.utc)
-            start_date = start_date.replace(microsecond=0).isoformat()
-
+            start_date = convert_date(start_date).isoformat()
             if duration is None:
                 raise ValueError("The 'duration' parameter must be specified")
         elif duration is not None:
@@ -753,6 +749,63 @@ class Users:
             )
 
         logger.info(f"The total consumed traffic is reset for user '{username}'")
+
+    @_validate_username
+    def get_latest_activity(self, username: str) -> datetime | None:
+        """Returns the user's latest activity date.
+
+        The latest activity date indicates when the user transmitted data.
+
+        Raises:
+            ``errors.UserNotExistError``:
+                When the specified user does not exist.
+        """
+        with self._database:
+            activity = self._database.execute(
+                "SELECT user_latest_activity_date FROM users WHERE username = ?",
+                (username,),
+            ).fetchone()
+
+        if not activity:
+            raise errors.UserNotExistError(username)
+        elif activity := activity["user_latest_activity_date"]:
+            return datetime.fromisoformat(activity)
+
+    def get_latest_activities(
+        self, from_date: datetime | str | int | float | None = None
+    ) -> dict[str, datetime]:
+        """Returns all the users latest activity date.
+
+        The latest activity date indicates when the user transmitted data.
+
+        Args:
+            `from_date`:
+                The date range filter in ISO 8601 format if provided value
+                is `str` or UNIX timestamp if provided value is a number.
+                If specified, only the activity dates beyond the specified
+                date will be included.
+        """
+        with self._database:
+            return {
+                user["username"]: datetime.fromisoformat(activity_date)
+                for user in self._database.execute(
+                    """
+                    SELECT
+                        username,
+                        user_latest_activity_date
+                    FROM
+                        users
+                    WHERE
+                        STRFTIME('%s', user_latest_activity_date) >= STRFTIME('%s', ?)
+                    """,
+                    (
+                        convert_date(from_date).isoformat()
+                        if from_date is not None
+                        else 0,
+                    ),
+                ).fetchall()
+                if (activity_date := user["user_latest_activity_date"])
+            }
 
     def generate_list(self) -> None:
         """

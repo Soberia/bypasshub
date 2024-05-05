@@ -79,13 +79,11 @@ def convert_size(
 
     magnitude = int(math.floor(math.log(size, 1000)))
     unit = prefixes[magnitude]
-    return "".join(
-        (
-            str(round(size / math.pow(1000, magnitude), precision or None)),
-            separator,
-            units[unit] if units else unit,
-        )
-    )
+    return "".join((
+        str(round(size / math.pow(1000, magnitude), precision or None)),
+        separator,
+        units[unit] if units else unit,
+    ))
 
 
 def convert_time(
@@ -112,6 +110,23 @@ def convert_time(
         return f"{int(seconds / 60)}{separator}{units['m']}"
     else:
         return f"{seconds}{separator}{units['s']}"
+
+
+def convert_date(date: datetime | str | int | float) -> datetime:
+    """
+    Converts the given value in ISO 8601 format or UNIX timestamp to the
+    `datetime` with the UTC time zone and stripped milliseconds.
+    """
+    if (date_type := type(date)) is not datetime:
+        if date_type is str:
+            date = datetime.fromisoformat(date)
+        elif date_type in (int, float):
+            date = datetime.fromtimestamp(date, tz=timezone.utc)
+
+    if date.tzinfo != timezone.utc:
+        date = date.astimezone(timezone.utc)
+
+    return date.replace(microsecond=0)
 
 
 def current_time() -> datetime:

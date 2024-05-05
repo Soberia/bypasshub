@@ -72,9 +72,11 @@ class ArgumentParser(argparse.ArgumentParser):
             # Only keeping the last `metavar`
             if action.option_strings and action.nargs != 0:
                 formatted = formatted.replace(
-                    f" {self._format_args(
+                    f" {
+                        self._format_args(
                             action, self._get_default_metavar_for_optional(action)
-                    )}",
+                        )
+                    }",
                     "",
                     len(action.option_strings) - 1,
                 )
@@ -255,6 +257,23 @@ class CLI:
             help="Show the user's total traffic consumption in bytes",
         )
         info.add_argument(
+            "--latest-activity",
+            metavar="<USERNAME>",
+            help="Show the user's latest activity date",
+        )
+        info.add_argument(
+            "--latest-activities",
+            action=DateAction,
+            metavar="<DATE | INT>",
+            nargs="?",
+            const="",
+            help=(
+                "Show the latest activity date of all the users."
+                " If the date range in ISO 8601 format or UNIX timestamp specified,"
+                " only the activity dates beyond the specified date will be included"
+            ),
+        )
+        info.add_argument(
             "--is-exist",
             metavar="<USERNAME>",
             help="Show whether the user exists in the database",
@@ -361,12 +380,10 @@ class CLI:
                 match command:
                     case "user":
                         if arguments.add:
-                            (credentials, exceptions) = await gather(
-                                [
-                                    manager.add_user(username, force=arguments.force)
-                                    for username in arguments.username
-                                ]
-                            )
+                            (credentials, exceptions) = await gather([
+                                manager.add_user(username, force=arguments.force)
+                                for username in arguments.username
+                            ])
 
                             for exception in exceptions:
                                 if isinstance(exception, errors.SynchronizationError):
@@ -376,24 +393,18 @@ class CLI:
                             if credentials:
                                 print(
                                     style(f"{'Users Credentials':-^42}", fg="cyan"),
-                                    "\n".join(
-                                        [
-                                            f"{credential['username']}@{credential['uuid']}"
-                                            for credential in credentials
-                                        ]
-                                    ),
+                                    "\n".join([
+                                        f"{credential['username']}@{credential['uuid']}"
+                                        for credential in credentials
+                                    ]),
                                     sep="\n",
                                 )
                         elif arguments.delete:
                             for exception in (
-                                await gather(
-                                    [
-                                        manager.delete_user(
-                                            username, force=arguments.force
-                                        )
-                                        for username in arguments.username
-                                    ]
-                                )
+                                await gather([
+                                    manager.delete_user(username, force=arguments.force)
+                                    for username in arguments.username
+                                ])
                             )[1]:
                                 self._log(exception)
                         elif arguments.reset_total_traffic:
@@ -403,20 +414,18 @@ class CLI:
                             self._user.print_help()
                     case "plan":
                         for exception in (
-                            await gather(
-                                [
-                                    manager.update_plan(
-                                        username,
-                                        start_date=arguments.start_date,
-                                        duration=arguments.duration,
-                                        traffic=arguments.traffic,
-                                        extra_traffic=arguments.extra_traffic,
-                                        reset_extra_traffic=arguments.reset_extra_traffic,
-                                        preserve_traffic_usage=arguments.preserve_traffic,
-                                    )
-                                    for username in arguments.username
-                                ]
-                            )
+                            await gather([
+                                manager.update_plan(
+                                    username,
+                                    start_date=arguments.start_date,
+                                    duration=arguments.duration,
+                                    traffic=arguments.traffic,
+                                    extra_traffic=arguments.extra_traffic,
+                                    reset_extra_traffic=arguments.reset_extra_traffic,
+                                    preserve_traffic_usage=arguments.preserve_traffic,
+                                )
+                                for username in arguments.username
+                            ])
                         )[1]:
                             self._log(exception)
                     case "reserved-plan":
@@ -475,6 +484,20 @@ class CLI:
                                 ],
                                 sep="\n",
                             )
+                        elif username := arguments.latest_activity:
+                            if latest_activity := manager.get_latest_activity(username):
+                                print(latest_activity)
+                        elif (from_date := arguments.latest_activities) is not None:
+                            if latest_activities := manager.get_latest_activities(
+                                from_date or None
+                            ):
+                                print(
+                                    *[
+                                        f"{key}: {value}"
+                                        for key, value in latest_activities.items()
+                                    ],
+                                    sep="\n",
+                                )
                         elif username := arguments.is_exist:
                             print(manager.is_exist(username))
                         elif username := arguments.has_active_plan:
