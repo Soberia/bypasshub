@@ -252,6 +252,12 @@ class CLI:
             help="Show the user's reserved plan",
         )
         info.add_argument(
+            "--plan-history",
+            metavar=("<USERNAME>", "<ID>"),
+            nargs="+",
+            help="Show the user's plan history",
+        )
+        info.add_argument(
             "--total-traffic",
             metavar="<USERNAME>",
             help="Show the user's total traffic consumption in bytes",
@@ -474,6 +480,25 @@ class CLI:
                                     ],
                                     sep="\n",
                                 )
+                        elif args := arguments.plan_history:
+                            separator = style(f"{'':-^42}", fg="cyan")
+                            for record in (
+                                history := manager.get_plan_history(
+                                    args[0], id=args[1] if len(args) == 2 else None
+                                )
+                            ):
+                                print(
+                                    *[
+                                        (
+                                            f"{key.replace('plan_', '').replace('_', '-')}:"
+                                            f" {'-' if value is None else value}"
+                                        )
+                                        for key, value in record.items()
+                                    ],
+                                    sep="\n",
+                                )
+                                if record is not history[-1]:
+                                    print(separator)
                         elif username := arguments.total_traffic:
                             print(
                                 *[

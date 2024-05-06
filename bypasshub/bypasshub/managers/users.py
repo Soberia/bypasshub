@@ -16,7 +16,7 @@ from ..config import config
 from ..database import Database
 from ..constants import PlanUpdateAction
 from ..utils import current_time, convert_date, convert_time, convert_size
-from ..types import Credentials, Plan, Traffic, ReservedPlan
+from ..types import Credentials, Traffic, Plan, ReservedPlan, PlanHistory
 
 USERNAME_MIN_LENGTH = 1
 USERNAME_MAX_LENGTH = 64
@@ -667,6 +667,40 @@ class Users:
             return True
 
         return False
+
+    @_validate_username
+    def get_plan_history(
+        self, username: str, *, id: int | None = None
+    ) -> list[PlanHistory]:
+        """Returns the user's plan history.
+
+        Args:
+            `id`: The plan identifier.
+
+        Raises:
+            ``errors.UserNotExistError``:
+                When the specified user does not exist.
+        """
+        if not self._is_exist(username):
+            raise errors.UserNotExistError(username)
+
+        id_condition = ""
+        values = (username,)
+        if id is not None:
+            id_condition = " AND id = ?"
+            values = (username, id)
+
+        with self._database:
+            history = self._database.execute(
+                f"SELECT * FROM history WHERE username = ?{id_condition}", values
+            ).fetchall()
+
+        for record in history:
+            for key in ("date", "plan_start_date"):
+                if (date := record[key]) is not None:
+                    record[key] = convert_date(date)
+
+        return history
 
     def has_active_plan(self, username: str, *, plan: Plan | None = None) -> bool:
         """

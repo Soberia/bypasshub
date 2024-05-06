@@ -19,7 +19,7 @@ def validate_username(
     username: Annotated[
         str,
         Query(
-            description="The user's username",
+            description="The user's username.",
             min_length=USERNAME_MIN_LENGTH,
             max_length=USERNAME_MAX_LENGTH,
             pattern=username_pattern.pattern,

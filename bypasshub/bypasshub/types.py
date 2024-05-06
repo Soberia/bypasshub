@@ -101,7 +101,7 @@ class UserReservedPlan(ReservedPlan):
     username: str
 
 
-class History(_PlanBase):
+class PlanHistory(_PlanBase):
     id: int | None
     date: datetime
     action: constants.PlanUpdateAction
@@ -112,7 +112,7 @@ class History(_PlanBase):
 class DatabaseSchema(TypedDict):
     users: list[User]
     reserved_plans: list[UserReservedPlan]
-    history: list[History]
+    history: list[PlanHistory]
 
 
 class Traffic(TypedDict):

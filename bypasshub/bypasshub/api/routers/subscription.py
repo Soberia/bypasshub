@@ -44,7 +44,7 @@ async def xray_subscription(
     manager: Annotated[Manager, Depends(get_manager)],
     *,
     username: Annotated[str, Depends(validate_username)],
-    uuid: Annotated[str, Query(description="The user's UUID")],
+    uuid: Annotated[str, Query(description="The user's UUID.")],
 ) -> PlainTextResponse:
     try:
         if manager.validate_credentials(Credentials(username=username, uuid=uuid)):
