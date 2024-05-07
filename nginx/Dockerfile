@@ -1,4 +1,4 @@
-FROM nginx:mainline as nginx
+FROM nginx:1.25 as nginx
 RUN apt-get update && \
     apt-get install -y wget git make cmake gcc libpcre3-dev zlib1g-dev; \
     wget http://nginx.org/download/nginx-$NGINX_VERSION.tar.gz; \
