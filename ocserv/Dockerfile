@@ -1,10 +1,10 @@
-ARG VERSION=1.2.4
+ARG VERSION=1.3.0
 
 FROM ubuntu:rolling AS ocserv
 ARG VERSION
 RUN apt-get update && \
     apt-get install -y wget xz-utils make gcc pkg-config autoconf automake \
-        nettle-dev libgnutls30 libgnutls28-dev libev-dev \
+        ipcalc-ng nettle-dev libgnutls30 libgnutls28-dev libev-dev \
         libseccomp-dev libreadline-dev libnl-route-3-dev; \
     wget https://www.infradead.org/ocserv/download/ocserv-$VERSION.tar.xz; \
     tar xf ocserv-$VERSION.tar.xz; \
@@ -13,7 +13,7 @@ RUN apt-get update && \
     autoreconf -fvi; \
     ./configure --disable-systemd --disable-compression \
         --without-root-tests --without-asan-broken-tests \
-        --without-tun-tests --without-http-parser --without-protobuf \
+        --without-tun-tests --without-llhttp --without-protobuf \
         --without-maxmind --without-geoip --without-liboath \
         --without-pam --without-radius --without-gssapi \
         --without-pcl-lib --without-utmp --without-libwrap \
