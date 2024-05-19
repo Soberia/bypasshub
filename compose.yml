@@ -191,6 +191,7 @@ services:
             CERTBOT_IPV6: $CERTBOT_IPV6
             NGINX_IPV4: 192.168.100.5
             NGINX_IPV6: $NGINX_IPV6
+            OCSERV_IPV4: 192.168.100.7
             NGINX_LOG_PURGE_INTERVAL: $NGINX_LOG_PURGE_INTERVAL
             COMPOSE_PROFILES: ${COMPOSE_PROFILES:?}
         <<: *common
@@ -265,6 +266,8 @@ services:
             OCSERV_CLIENTS_IPV6_CIDR: $OCSERV_CLIENTS_IPV6_CIDR
             BIND_IPV4: 192.168.100.3
             BIND_IPV6: $BIND_IPV6
+            NGINX_IPV4: 192.168.100.5
             NGINX_IPV6: $NGINX_IPV6
+            OCSERV_IPV4: 192.168.100.7
         restart: always
         <<: [*logs, *ulimits]

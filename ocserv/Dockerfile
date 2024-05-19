@@ -74,6 +74,15 @@ ENTRYPOINT trap 'exit' TERM INT; \
         ip6tables -A FORWARD -s $OCSERV_IPV6_SUBNET -o eth0 -j ACCEPT; \
     fi; \
 
+    # Performing stateless NAT on the outgoing packets to
+    # change the source IP address to the `NGINX` contaienr.
+    # The binary mask required to match only a single port.
+    tc qdisc add dev eth0 root handle 10: htb; \
+    tc filter add dev eth0 parent 10: protocol ip prio 10 u32 \
+        match ip src $OCSERV_IPV4 \
+        match ip sport $OCSERV_DTLS_PORT 0xffff \
+        action nat egress $OCSERV_IPV4 $NGINX_IPV4; \
+
     # Injecting the environment variables
     OCSERV_KEY=$(< /run/secrets/ocserv_key); \
     CAMOUFLAGE=$([ -z "$OCSERV_KEY" ] && echo false || echo true); \
