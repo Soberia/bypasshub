@@ -49,19 +49,7 @@ ENTRYPOINT trap 'exit' TERM INT; \
             fi; \
         done; \
 
-        if [[ $ENABLE_DNSSEC == true ]]; then \
-            if [ -z "$(ls -A /tmp/bind/keys)" ]; then \
-                dnssec-keygen -K /tmp/bind/keys -a ECDSAP256SHA256 -3 $DOMAIN; \
-                dnssec-keygen -K /tmp/bind/keys -a ECDSAP256SHA256 -3 -f KSK $DOMAIN; \
-            fi; \
-            # Periodically resigning the NSEC3 records
-            # with a new salt to prevent domain walking
-            while true; do \
-                sleep 86400; \
-                rndc signing -nsec3param 1 0 10 \
-                    $(head /dev/urandom | sha1sum | head -c16) $DOMAIN; \
-            done & \
-        else \
+        if [[ $ENABLE_DNSSEC != true ]]; then \
             # Disabling DNSSEC signing
             sed -i "/#? dnssec/d" /tmp/bind/named.conf; \
         fi; \
