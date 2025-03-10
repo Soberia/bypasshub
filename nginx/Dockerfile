@@ -2,7 +2,7 @@ ARG NGINX_VERSION=1.27.4
 
 # Zstandard module will not get compiled with default NGINX image based on Debian.
 # See https://github.com/tokers/zstd-nginx-module/issues/37
-FROM nginx:$NGINX_VERSION AS nginx
+FROM ubuntu:22.04 AS modules
 ARG NGINX_VERSION
 RUN apt-get update && \
     apt-get install -y wget git make cmake gcc libpcre3-dev zlib1g-dev libzstd-dev; \
@@ -22,7 +22,7 @@ RUN apt-get update && \
 
 FROM nginx:$NGINX_VERSION
 LABEL org.opencontainers.image.title=NGINX
-COPY --chmod=644 --from=nginx /nginx*/objs/*.so /usr/lib/nginx/modules/
+COPY --chmod=644 --from=modules /nginx*/objs/*.so /usr/lib/nginx/modules/
 RUN apt-get update && \
     apt-get install -y --no-install-recommends iptables sudo libcap2-bin; \
     apt-get clean; \
