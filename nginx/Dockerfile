@@ -1,4 +1,4 @@
-ARG NGINX_VERSION=1.25
+ARG NGINX_VERSION=1.27.4
 
 # Zstandard module will not get compiled with default NGINX image based on Debian.
 # See https://github.com/tokers/zstd-nginx-module/issues/37
