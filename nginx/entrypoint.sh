@@ -60,13 +60,8 @@ declare -a envs=(
     'OCSERV_DTLS_PORT'
     'TLS_PORT'
     'DNS_RESOLVER'
-    'DNS_IPV4'
-    'DNS_IPV6'
     'OCSERV_IPV4'
 )
-if [[ $ENABLE_IPV6 != true || -z $DNS_IPV6 ]]; then
-    sed -i 's/\[\$DNS_IPV6\]//' /tmp/nginx/nginx.conf
-fi
 for env in "${envs[@]}"; do
     sed -i "s|\$$env|${!env}|g" /tmp/nginx/nginx.conf
 done

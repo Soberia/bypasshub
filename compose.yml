@@ -184,8 +184,6 @@ services:
             OCSERV_SNI: $OCSERV_SNI
             OCSERV_DTLS_PORT: $OCSERV_DTLS_PORT
             TLS_PORT: ${TLS_PORT:?}
-            DNS_IPV4: ${DNS_IPV4:?}
-            DNS_IPV6: $DNS_IPV6
             ENABLE_IPV6: $ENABLE_IPV6
             IPV6_SUBNET: $IPV6_SUBNET
             CERTBOT_IPV4: 192.168.100.4
