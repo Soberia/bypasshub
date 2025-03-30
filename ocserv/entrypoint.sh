@@ -74,9 +74,9 @@ declare -a envs=(
 )
 for env in "${envs[@]}"; do
     if [[ $env == *"IPV6"* && ( $ENABLE_IPV6 != true || -z ${!env} ) ]]; then
-        sed -i "/\$$env/d" /tmp/ocserv/ocserv.conf
+        sed -i "/\$$env\b/d" /tmp/ocserv/ocserv.conf
     else
-        sed -i "s|\$$env|${!env}|g" /tmp/ocserv/ocserv.conf
+        sed -i "s|\$$env\b|${!env}|g" /tmp/ocserv/ocserv.conf
     fi
 done
 

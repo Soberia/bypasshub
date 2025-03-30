@@ -37,7 +37,7 @@ if [[ $ENABLE_AUTHORITATIVE_ZONE == true ]]; then
     for profile in 'xray' 'ocserv'; do
         sni="${profile^^}_SNI"
         if [[ $COMPOSE_PROFILES != *"$profile"* || ! ${!sni} =~ "$DOMAIN"$ ]]; then
-            sed -i "/\$$sni/,+1d" /tmp/bind/db.forward
+            sed -i "/\$$sni\b/,+1d" /tmp/bind/db.forward
         fi
     done
 
@@ -65,7 +65,7 @@ declare -a envs=(
 )
 for env in "${envs[@]}"; do
     if [[ $env == *"IPV6"* && ( $ENABLE_IPV6 != true || -z ${!env} ) ]]; then
-        sed -i "/\$$env/d" /tmp/bind/{named.conf,db.forward}
+        sed -i "/\$$env\b/d" /tmp/bind/{named.conf,db.forward}
     else
         sed -i "s|\$$env|${!env}|g" /tmp/bind/{named.conf,db.forward}
     fi

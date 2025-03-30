@@ -63,7 +63,7 @@ declare -a envs=(
     'OCSERV_IPV4'
 )
 for env in "${envs[@]}"; do
-    sed -i "s|\$$env|${!env}|g" /tmp/nginx/nginx.conf
+    sed -i "s|\$$env\b|${!env}|g" /tmp/nginx/nginx.conf
 done
 
 # Periodically clearing the logs

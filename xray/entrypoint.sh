@@ -33,7 +33,7 @@ if [[ $ENABLE_IPV6 == true ]]; then
 fi
 
 # Injecting the environment variables
-sed -i "s|\$DOMAIN|$DOMAIN|g" /dev/shm/xray.json
+sed -i "s|\$DOMAIN\b|$DOMAIN|g" /dev/shm/xray.json
 
 # Waiting for the users list to be generated
 current_time=$(date '+%s')
