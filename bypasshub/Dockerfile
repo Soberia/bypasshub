@@ -1,44 +1,15 @@
+ARG PYTHON_VERSION=3.12
 ARG XRAY_VERSION=1.8.13
 
-FROM python:3.12-slim AS packages
+FROM python:$PYTHON_VERSION-slim AS packages
+ARG PYTHON_VERSION
 ARG XRAY_VERSION
 COPY . /usr/local/src/bypasshub/bypasshub/
-SHELL ["bash", "-c"]
-RUN apt-get update && \
-    apt-get install -y wget; \
-    #
-    wget https://github.com/XTLS/Xray-core/archive/refs/tags/v$XRAY_VERSION.tar.gz; \
-    tar xf v$XRAY_VERSION.tar.gz; \
-    #
-    package=xray_rpc; \
-    mkdir $package; \
-    shopt -s globstar; \
-    pip install --no-cache-dir --editable /usr/local/src/bypasshub/bypasshub/; \
-    python -m grpc_tools.protoc \
-        --python_out $package \
-        --grpc_python_out $package \
-        --proto_path Xray-core-$XRAY_VERSION \
-        Xray-core-$XRAY_VERSION/**/*.proto; \
-    # The `protobuf` doesn't support relative imports in generated modules.
-    # Therefor, relative import statements should be replaced with absolute import.
-    # See https://github.com/protocolbuffers/protobuf/issues/1491
-    sed -i -E \
-        -e "s/(from\s+)(.*)(pb2)$/\1$package.\2\3/g" \
-        -e "s/(importlib.import_module\(')(.*)('\))/\1$package.\2\3/g" \
-        $package/**/*.py; \
-    #
-    echo '[build-system]' > pyproject.toml; \
-    echo 'requires = ["setuptools"]' >> pyproject.toml; \
-    echo 'build-backend = "setuptools.build_meta"' >> pyproject.toml; \
-    echo '[project]' >> pyproject.toml; \
-    echo "name = '$package'" >> pyproject.toml; \
-    echo "version = '$XRAY_VERSION'" >> pyproject.toml; \
-    echo '[tool.setuptools]' >> pyproject.toml; \
-    echo "packages = ['$package']" >> pyproject.toml; \
-    pip install .; \
-    mv $package /usr/local/lib/python*/site-packages;
+COPY --chmod=655 build.sh /usr/local/sbin/
+RUN apt-get update && apt-get install -y wget; \
+    build.sh;
 
-FROM python:3.12-slim
+FROM python:$PYTHON_VERSION-slim
 LABEL org.opencontainers.image.title=BypassHub
 COPY --from=packages /usr/local/lib/ /usr/local/lib/
 COPY --from=packages /usr/local/bin/bypasshub /usr/local/bin/bypasshub
