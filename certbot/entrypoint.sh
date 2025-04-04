@@ -171,7 +171,6 @@ while true; do
         sleep=3600
         echo $(date '+%s' -d "$(expiration_date)") > $last_renewal
         chmod -R u+rwX,go+rX,go-w /etc/letsencrypt/{live,archive}/$DOMAIN
-        rm -r /tmp/certbot/log/*
     elif [ ! -f $exit_code ]; then
         # Reporting the error on failure for the first try
         exit $code
