@@ -129,6 +129,9 @@ services:
             BIND_IPV6: $BIND_IPV6
             NGINX_IPV6: $NGINX_IPV6
             COMPOSE_PROFILES: ${COMPOSE_PROFILES:?}
+        post_start:
+            - user: root
+              command: ["firewall.sh"]
         <<: *common
 
     certbot:
@@ -210,6 +213,8 @@ services:
         post_start:
             - user: root
               command: ["chown", "nginx:nginx", "/etc/nginx/html", "/var/log/nginx"]
+            - user: root
+              command: ["firewall.sh"]
         <<: *common
 
     xray:
@@ -246,6 +251,8 @@ services:
         post_start:
             - user: root
               command: ["chown", "-R", "xray:proxy", "/usr/local/etc/xray/confs"]
+            - user: root
+              command: ["firewall.sh"]
         <<: *common
 
     ocserv:
@@ -295,5 +302,7 @@ services:
         post_start:
             - user: root
               command: ["chown", "-R", "ocserv:ocserv", "/etc/ocserv/configs"]
+            - user: root
+              command: ["firewall.sh"]
         restart: always
         <<: [*logs, *ulimits]

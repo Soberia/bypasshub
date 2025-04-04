@@ -13,11 +13,10 @@ LABEL org.opencontainers.image.title=Xray-core
 COPY --from=xray --chmod=755 /xray /usr/local/bin/xray
 COPY --from=xray --chmod=644 /geo*.dat /usr/local/share/xray/
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends jq iptables sudo; \
+    apt-get install -y --no-install-recommends jq iptables; \
     apt-get clean; \
     #
-    useradd --gid proxy xray; \
-    echo 'xray ALL=(root) NOPASSWD:/usr/sbin/iptables, /usr/sbin/ip6tables' >> /etc/sudoers;
+    useradd --gid proxy xray;
 
 USER xray
 COPY --chmod=655 *.sh /usr/local/sbin/

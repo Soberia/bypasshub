@@ -7,22 +7,6 @@ install -d -m 0750 /tmp/bind/{cache,keys}
 cp /etc/bind/named.conf /tmp/bind/named.conf
 cp /etc/bind/db.forward /tmp/bind/db.forward
 
-# Configuring the firewall
-sudo ip6tables -P INPUT DROP
-sudo ip6tables -P FORWARD DROP
-sudo ip6tables -A INPUT -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
-sudo ip6tables -A INPUT -i lo -j ACCEPT
-sudo ip6tables -A INPUT -i eth0 -p ipv6-icmp -j ACCEPT
-if [[ $ENABLE_IPV6 == true ]]; then
-    source=$(
-        [[ $ENABLE_AUTHORITATIVE_ZONE != true ]] &&
-        echo "-s $IPV6_SUBNET" ||
-        echo ''
-    )
-    sudo ip6tables -A INPUT -i eth0 $source -p tcp --dport 53 -j ACCEPT
-    sudo ip6tables -A INPUT -i eth0 $source -p udp --dport 53 -j ACCEPT
-fi
-
 if [ ! -f /tmp/bind/domain ]; then
     echo $DOMAIN > /tmp/bind/domain
 elif [[ $(< /tmp/bind/domain) != $DOMAIN ]]; then

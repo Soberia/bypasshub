@@ -9,29 +9,6 @@ cp -f /usr/local/etc/xray/xray.json /dev/shm/xray.json
 [[ $ENABLE_XRAY_SUBSCRIPTION == true ]] &&
     cp -f /usr/local/etc/xray/confs/cdn-ips /tmp/xray/cdn-ips 2>/dev/null
 
-# Configuring the firewall and rejecting clients
-# access to the host and container's network
-for ip in ip ip6; do
-    sudo ${ip}tables -P FORWARD DROP
-    sudo ${ip}tables -P INPUT DROP
-    sudo ${ip}tables -A INPUT -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
-    sudo ${ip}tables -A INPUT -i lo -j ACCEPT
-done
-
-sudo iptables -A OUTPUT -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
-sudo iptables -A OUTPUT -d $BIND_IPV4 -p udp --dport 53 -j ACCEPT
-sudo iptables -A OUTPUT -d $BIND_IPV4 -p tcp --dport 53 -j ACCEPT
-sudo iptables -A OUTPUT -d 10.0.0.0/8,172.16.0.0/12,192.168.0.0/16 -j DROP
-
-sudo ip6tables -A INPUT -i eth0 -p ipv6-icmp -j ACCEPT
-if [[ $ENABLE_IPV6 == true ]]; then
-    sudo ip6tables -A OUTPUT -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
-    sudo ip6tables -A OUTPUT -d $BIND_IPV6 -p udp --dport 53 -j ACCEPT
-    sudo ip6tables -A OUTPUT -d $BIND_IPV6 -p tcp --dport 53 -j ACCEPT
-    sudo ip6tables -A OUTPUT -d $NGINX_IPV6 -p tcp --dport $TLS_PORT -j ACCEPT
-    sudo ip6tables -A OUTPUT -d $IPV6_SUBNET,fd00::/8 -j DROP
-fi
-
 # Injecting the environment variables
 sed -i "s|\$DOMAIN\b|$DOMAIN|g" /dev/shm/xray.json
 
