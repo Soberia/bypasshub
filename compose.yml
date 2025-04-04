@@ -48,6 +48,8 @@ networks:
     general:
         driver: bridge
         enable_ipv6: ${ENABLE_IPV6:-false}
+        driver_opts:
+            com.docker.network.bridge.gateway_mode_ipv6: routed
         ipam:
             config:
                 - subnet: 192.168.100.0/28
