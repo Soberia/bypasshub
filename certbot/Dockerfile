@@ -11,9 +11,7 @@ FROM certbot/dns-$PLUGIN
 LABEL org.opencontainers.image.title=Certbot
 RUN apk add --no-cache bash sudo; \
     adduser -HD certbot certbot; \
-    echo -n 'certbot ALL=(root) NOPASSWD:/bin/cat /tmp/bind/session.key' >> /etc/sudoers; \
-    echo -n ', /bin/chown * /etc/letsencrypt' >> /etc/sudoers; \
-    echo ', /bin/chmod * /etc/letsencrypt*' >> /etc/sudoers;
+    echo -n 'certbot ALL=(root) NOPASSWD:/bin/cat /tmp/bind/session.key' >> /etc/sudoers;
 
 USER certbot
 COPY --chmod=655 *.sh /usr/local/sbin/

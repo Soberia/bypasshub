@@ -12,10 +12,9 @@ function expiration_date() {
     echo $date | awk -v FS='(=| GMT)' '{print $2}'
 }
 
-install -d -m 0755 /tmp/certbot/{lib,log}
+install -d -g users -m 0750 /tmp/certbot
+install -d -m 0750 /tmp/certbot/{lib,log}
 rm -f $last_renewal &>/dev/null
-sudo chmod 755 /etc/letsencrypt
-sudo chown -R certbot:certbot /etc/letsencrypt
 
 # Ignoring invalid SNIs which is not part of the parent domain
 domains="$DOMAIN,www.$DOMAIN"

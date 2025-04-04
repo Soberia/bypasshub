@@ -44,7 +44,7 @@ size = 10 # MiB
 level = "debug"
 store = true
 stdout_traceback = false
-path = "/tmp/bypasshub/log"
+path = "/var/log/bypasshub"
 
 [database]
 # The database auto backup interval.

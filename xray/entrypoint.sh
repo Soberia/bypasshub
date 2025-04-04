@@ -2,7 +2,7 @@
 
 trap 'exit' TERM INT
 
-install -d -m 0755 /tmp/xray
+install -d -g users -m 0750 /tmp/xray
 rm -f /tmp/xray/*.sock &>/dev/null
 ln -s /dev/shm/xray.json /tmp/xray/xray.json &>/dev/null
 cp -f /usr/local/etc/xray/xray.json /dev/shm/xray.json

@@ -179,7 +179,7 @@ The following will demonstrate how to place your server behind the Cloudflare CD
 - In the **Network** panel, make sure the **WebSockets** is enabled.
 - If the [`ENABLE_XRAY_SUBSCRIPTION`](#ENABLE_XRAY_SUBSCRIPTION) parameter is enabled, you should set the **Caching Level** option to the **No query string** in the **Configuration** section of **Caching** panel.
 - The [`ENABLE_AUTHORITATIVE_ZONE`](#ENABLE_AUTHORITATIVE_ZONE) and [`ENABLE_XRAY_CDN`](#ENABLE_XRAY_CDN) parameters should be disabled and enabled respectively. Rebuild the containers after the modification.
-- [Update](#connecting-from-client) your `Xray-core` client configurations to reflect the changes. If you can't make a successful connection, try with an [IP scanner](https://cloudflare-v2ray.vercel.app) to find healthy IP addresses. You can also put these IP addresses that work on different ISPs to the `xray/configs/cdn-ips` to publish them on the subscription:
+- [Update](#connecting-from-client) your `Xray-core` client configurations to reflect the changes. If you can't make a successful connection, try with an [IP scanner](https://cloudflare-v2ray.vercel.app) to find healthy IP addresses. You can also put these IP addresses that work on different ISPs to the `.data/xray/configs/cdn-ips` to publish them on the subscription:
     ```
     1.1.1.1 ISP#1
     1.1.1.2 ISP#2
@@ -190,16 +190,16 @@ The following will demonstrate how to place your server behind the Cloudflare CD
 
 The TLS-based services like `Xray-core` and `OpenConnect` are camouflaged behind a web server which decides the destination of incoming traffic based on the passed SNI value.
 
-By default, for invalid requests (or authentication failures in the case of `Xray-core`) an empty `index.html` template located in `nginx/static` directory will be returned. You should modify it up to the point to represent a good unique indistinguishable fake webpage. If you need to include static assist like `JavaScript`, `CSS` or images, you can place them in the same mentioned directory.
+By default, for invalid requests (or authentication failures in the case of `Xray-core`) an empty `index.html` template located in `.data/nginx/static` directory will be returned. You should modify it up to the point to represent a good unique indistinguishable fake webpage. If you need to include static assist like `JavaScript`, `CSS` or images, you can place them in the same mentioned directory.
 
 > **Warning**  
 > `OpenConnect` VPN server [can be detected through the exposed SNI](https://gitlab.com/openconnect/ocserv/-/issues/393). It's also recommended to set [`OCSERV_KEY`](#OCSERV_KEY) parameter to hide the server identity.
 
 ## Additional Configurations
 
-For `Xray-core` you can place [additional configuration](https://xtls.github.io/Xray-docs-next/config/features/multiple.html) files in the `xray/configs` directory (e.g. to block BitTorrent traffic).
+For `Xray-core` you can place [additional configuration](https://xtls.github.io/Xray-docs-next/config/features/multiple.html) files in the `.data/xray/configs` directory (e.g. to block BitTorrent traffic).
 
-For `OpenConnect`, you can place [user-based configuration](http://ocserv.gitlab.io/www/manual.html) files in the `ocserv/configs` directory (e.g. to give the user a static IP address). The name of the config file should correspond to the defined username.
+For `OpenConnect`, you can place [user-based configuration](http://ocserv.gitlab.io/www/manual.html) files in the `.data/ocserv/configs` directory (e.g. to give the user a static IP address). The name of the config file should correspond to the defined username.
 
 ## DNSSEC
 
@@ -235,10 +235,10 @@ The persistence of the logs can be controlled by the [`NGINX_LOG_PURGE_INTERVAL`
 You can see the logs by running the following commands:
 
 ```bash
-docker compose exec nginx cat /tmp/nginx/log/access.log # Clients access log
-docker compose exec nginx cat /tmp/nginx/log/static.log # Dummy website access log
-docker compose exec nginx cat /tmp/nginx/log/api.log # API access log
-docker compose exec nginx cat /tmp/nginx/log/error.log
+docker compose exec nginx cat /var/log/nginx/access.log # Clients access log
+docker compose exec nginx cat /var/log/nginx/static.log # Dummy website access log
+docker compose exec nginx cat /var/log/nginx/api.log # API access log
+docker compose exec nginx cat /var/log/nginx/error.log
 ```
 
 ## Update Containers
@@ -254,7 +254,7 @@ Get the latest source:
 ```bash
 git stash && \
     git pull && \
-    git checkout stash -- .env nginx/static/index.html && \
+    git checkout stash -- .env && \
     git stash drop
 ```
 
@@ -271,7 +271,7 @@ You can revoke the generated certificates if you don't need them anymore: (repla
 
 ```bash
 docker run --rm -it \
-    -v $PWD/certbot/letsencrypt:/etc/letsencrypt \
+    -v $PWD/.data/certbot/letsencrypt:/etc/letsencrypt \
     certbot/certbot revoke --cert-name $DOMAIN
 ```
 

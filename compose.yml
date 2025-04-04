@@ -66,12 +66,15 @@ services:
         build: ./bypasshub
         volumes:
             - ./bypasshub:/usr/local/src/bypasshub/bypasshub:ro
-            - ./bypasshub/database:/var/lib/bypasshub
+            - ./.data/bypasshub/database:/var/lib/bypasshub
+            - ./.data/bypasshub/log:/var/log/bypasshub
             - temp:/tmp
         networks:
             general:
                 ipv4_address: 192.168.100.2
                 ipv6_address: $BYPASSHUB_IPV6
+        group_add:
+            - users
         depends_on:
             certbot:
                 condition: service_healthy
@@ -90,6 +93,9 @@ services:
             TLS_PORT: $TLS_PORT
             CDN_TLS_PORT: $CDN_TLS_PORT
             COMPOSE_PROFILES: ${COMPOSE_PROFILES:?}
+        post_start:
+            - user: root
+              command: ["chown", "bypasshub:www-data", "/var/lib/bypasshub", "/var/log/bypasshub"]
         stop_grace_period: 20s
         <<: *common
 
@@ -103,6 +109,8 @@ services:
             general:
                 ipv4_address: 192.168.100.3
                 ipv6_address: $BIND_IPV6
+        group_add:
+            - users
         cap_add:
             - NET_ADMIN # for iptables
         profiles:
@@ -129,13 +137,15 @@ services:
             args:
                 PLUGIN: cloudflare
         volumes:
-            - ./certbot/letsencrypt:/etc/letsencrypt
-            - ./certbot/letsencrypt/lib:/var/lib/letsencrypt
+            - ./.data/certbot/letsencrypt:/etc/letsencrypt
+            - ./.data/certbot/letsencrypt/lib:/var/lib/letsencrypt
             - temp:/tmp
         networks:
             general:
                 ipv4_address: 192.168.100.4
                 ipv6_address: $CERTBOT_IPV6
+        group_add:
+            - users
         secrets:
             - cloudflare_api_token
         profiles:
@@ -151,15 +161,20 @@ services:
             ENABLE_IPV6: $ENABLE_IPV6
             CERTBOT_RENEWAL_LEFT_DAYS: $CERTBOT_RENEWAL_LEFT_DAYS
             BIND_IPV4: 192.168.100.3
+        post_start:
+            - user: root
+              command: ["chown", "-R", "certbot:certbot", "/etc/letsencrypt"]
         restart: on-failure:1
 
     nginx:
         build: ./nginx
         volumes:
-            - ./nginx/static:/etc/nginx/html:ro
             - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-            - ./certbot/letsencrypt/live/$DOMAIN:/etc/letsencrypt/live/$DOMAIN:ro
-            - ./certbot/letsencrypt/archive/$DOMAIN:/etc/letsencrypt/archive/$DOMAIN:ro
+            - ./nginx/static/index.html:/etc/nginx/index.html:ro
+            - ./.data/nginx/static:/etc/nginx/html
+            - ./.data/nginx/log:/var/log/nginx
+            - ./.data/certbot/letsencrypt/live/$DOMAIN:/etc/letsencrypt/live/$DOMAIN:ro
+            - ./.data/certbot/letsencrypt/archive/$DOMAIN:/etc/letsencrypt/archive/$DOMAIN:ro
             - temp:/tmp
         networks:
             general:
@@ -169,6 +184,8 @@ services:
             - NET_ADMIN # for iptables
         ports:
             - ${TLS_PORT:?}:443/tcp
+        group_add:
+            - users
         depends_on:
             certbot:
                 condition: service_healthy
@@ -190,15 +207,18 @@ services:
             OCSERV_IPV4: 192.168.100.7
             NGINX_LOG_PURGE_INTERVAL: $NGINX_LOG_PURGE_INTERVAL
             COMPOSE_PROFILES: ${COMPOSE_PROFILES:?}
+        post_start:
+            - user: root
+              command: ["chown", "nginx:nginx", "/etc/nginx/html", "/var/log/nginx"]
         <<: *common
 
     xray:
         build: ./xray
         volumes:
-            - ./xray/configs:/usr/local/etc/xray/confs:ro
             - ./xray/xray.json:/usr/local/etc/xray/xray.json:ro
-            - ./certbot/letsencrypt/live/$DOMAIN:/etc/letsencrypt/live/$DOMAIN:ro
-            - ./certbot/letsencrypt/archive/$DOMAIN:/etc/letsencrypt/archive/$DOMAIN:ro
+            - ./.data/xray/configs:/usr/local/etc/xray/confs
+            - ./.data/certbot/letsencrypt/live/$DOMAIN:/etc/letsencrypt/live/$DOMAIN:ro
+            - ./.data/certbot/letsencrypt/archive/$DOMAIN:/etc/letsencrypt/archive/$DOMAIN:ro
             - temp:/tmp
         networks:
             general:
@@ -206,6 +226,8 @@ services:
                 ipv6_address: $XRAY_IPV6
         cap_add:
             - NET_ADMIN # for iptables
+        group_add:
+            - users
         depends_on:
             - bypasshub
             - bind
@@ -221,15 +243,18 @@ services:
             BIND_IPV4: 192.168.100.3
             BIND_IPV6: $BIND_IPV6
             NGINX_IPV6: $NGINX_IPV6
+        post_start:
+            - user: root
+              command: ["chown", "-R", "xray:proxy", "/usr/local/etc/xray/confs"]
         <<: *common
 
     ocserv:
         build: ./ocserv
         volumes:
-            - ./ocserv/configs:/etc/ocserv/configs:ro
             - ./ocserv/ocserv.conf:/etc/ocserv/ocserv.conf:ro
-            - ./certbot/letsencrypt/live/$DOMAIN:/etc/letsencrypt/live/$DOMAIN:ro
-            - ./certbot/letsencrypt/archive/$DOMAIN:/etc/letsencrypt/archive/$DOMAIN:ro
+            - ./.data/ocserv/configs:/etc/ocserv/configs
+            - ./.data/certbot/letsencrypt/live/$DOMAIN:/etc/letsencrypt/live/$DOMAIN:ro
+            - ./.data/certbot/letsencrypt/archive/$DOMAIN:/etc/letsencrypt/archive/$DOMAIN:ro
             - temp:/tmp
         networks:
             general:
@@ -238,6 +263,8 @@ services:
         cap_add:
             - NET_ADMIN
             - CAP_MKNOD
+        group_add:
+            - users
         depends_on:
             - bypasshub
             - bind
@@ -265,5 +292,8 @@ services:
             NGINX_IPV4: 192.168.100.5
             NGINX_IPV6: $NGINX_IPV6
             OCSERV_IPV4: 192.168.100.7
+        post_start:
+            - user: root
+              command: ["chown", "-R", "ocserv:ocserv", "/etc/ocserv/configs"]
         restart: always
         <<: [*logs, *ulimits]

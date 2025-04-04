@@ -2,9 +2,12 @@
 
 trap 'exit' TERM INT
 
-install -d -m 0755 /tmp/nginx/{cache,log}
+install -d -g users -m 0750 /tmp/nginx
+install -d -m 0750 /tmp/nginx/cache
 rm -f /tmp/nginx/*.sock &>/dev/null
 cp /etc/nginx/nginx.conf /tmp/nginx/nginx.conf
+[[ ! -f /etc/nginx/html/index.html ]] &&
+    cp /etc/nginx/index.html /etc/nginx/html/
 
 # Configuring the firewall
 sudo ip6tables -P INPUT DROP
@@ -68,11 +71,11 @@ done
 
 # Periodically clearing the logs
 if [ ! -z $NGINX_LOG_PURGE_INTERVAL ] && (( $NGINX_LOG_PURGE_INTERVAL > 0 )); then
-    if [ ! -f /tmp/nginx/log/last-purge ]; then
+    if [ ! -f /var/log/nginx/last-purge ]; then
         last_purge=$(date '+%s')
-        echo $last_purge > /tmp/nginx/log/last-purge
+        echo $last_purge > /var/log/nginx/last-purge
     else
-        last_purge=$(< /tmp/nginx/log/last-purge)
+        last_purge=$(< /var/log/nginx/last-purge)
     fi
 
     while true; do
@@ -83,7 +86,7 @@ if [ ! -z $NGINX_LOG_PURGE_INTERVAL ] && (( $NGINX_LOG_PURGE_INTERVAL > 0 )); th
             tee /var/log/nginx/*.log </dev/null
             kill -USR1 $(< /tmp/nginx/nginx.pid)
             last_purge=$current_time
-            echo $current_time > /tmp/nginx/log/last-purge
+            echo $current_time > /var/log/nginx/last-purge
         else
             sleep_time=$(( $due_date - $current_time ))
         fi

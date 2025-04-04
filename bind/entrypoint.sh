@@ -2,7 +2,8 @@
 
 trap 'exit' TERM INT
 
-install -d -m 0755 /tmp/bind/{cache,keys}
+install -d -g users -m 0750 /tmp/bind
+install -d -m 0750 /tmp/bind/{cache,keys}
 cp /etc/bind/named.conf /tmp/bind/named.conf
 cp /etc/bind/db.forward /tmp/bind/db.forward
 
