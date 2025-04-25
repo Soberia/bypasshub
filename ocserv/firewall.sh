@@ -38,6 +38,7 @@ fi
 # The binary mask required to match only a single port.
 tc qdisc add dev eth0 root handle 10: htb
 tc filter add dev eth0 parent 10: protocol ip prio 10 u32 \
+    match ip protocol 17 0xff \
     match ip src $OCSERV_IPV4 \
     match ip sport $OCSERV_DTLS_PORT 0xffff \
     action nat egress $OCSERV_IPV4 $NGINX_IPV4
