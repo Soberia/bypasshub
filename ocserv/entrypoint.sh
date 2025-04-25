@@ -11,7 +11,7 @@ generate_ocsp() {
         --outfile /tmp/ocserv/ocsp.der &>/dev/null
 }
 
-install -d -g users -m 0750 /tmp/ocserv
+install -d -g users -m 0755 /tmp/ocserv
 rm -f /tmp/ocserv/ocserv.sock.* &>/dev/null
 ln -s /dev/shm/passwd /tmp/ocserv/passwd &>/dev/null
 cp -f /etc/ocserv/ocserv.conf /tmp/ocserv/ocserv.conf
