@@ -2,15 +2,6 @@
 
 trap 'exit' TERM INT
 
-# Generates an OCSP response
-generate_ocsp() {
-    ocsptool \
-        --ask \
-        --load-cert /etc/letsencrypt/live/$DOMAIN/fullchain.pem \
-        --load-issuer /etc/letsencrypt/live/$DOMAIN/chain.pem \
-        --outfile /tmp/ocserv/ocsp.der &>/dev/null
-}
-
 install -d -g users -m 0755 /tmp/ocserv
 rm -f /tmp/ocserv/ocserv.sock.* &>/dev/null
 ln -s /dev/shm/passwd /tmp/ocserv/passwd &>/dev/null
@@ -39,12 +30,6 @@ for env in "${envs[@]}"; do
     fi
 done
 
-# Periodically generating the OCSP response
-while true; do
-    generate_ocsp
-    sleep 3600
-done &
-
 # Periodically reloading the regenerated certificate
 last_renewal=$(cat /tmp/certbot/last-renewal 2>/dev/null)
 while true; do
@@ -58,7 +43,6 @@ while true; do
     sleep 3600
     current_renewal=$(cat /tmp/certbot/last-renewal 2>/dev/null)
     if (( $current_renewal > $last_renewal )); then
-        generate_ocsp
         kill -HUP $(< /tmp/ocserv/ocserv.pid)
         last_renewal=$current_renewal
     fi
