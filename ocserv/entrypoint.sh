@@ -26,6 +26,7 @@ declare -a envs=(
     'OCSERV_IPV4_SUBNET'
     'OCSERV_IPV6_SUBNET'
     'OCSERV_CLIENTS_IPV6_CIDR'
+    'NGINX_IPV4'
     'BIND_IPV4'
     'BIND_IPV6'
     'CAMOUFLAGE'
