@@ -1,12 +1,10 @@
-ARG NGINX_VERSION=1.27.4
+ARG NGINX_VERSION=1.29.3
 
-# Zstandard module will not get compiled with default NGINX image based on Debian.
-# See https://github.com/tokers/zstd-nginx-module/issues/37
-FROM ubuntu:22.04 AS modules
+FROM nginx:$NGINX_VERSION AS modules
 ARG NGINX_VERSION
 COPY --chmod=655 build.sh /usr/local/sbin/
 RUN apt-get update && \
-    apt-get install -y wget git make cmake gcc libpcre3-dev zlib1g-dev libzstd-dev; \
+    apt-get install -y wget git make cmake gcc zlib1g-dev libpcre2-dev libzstd-dev; \
     build.sh;
 
 FROM nginx:$NGINX_VERSION
